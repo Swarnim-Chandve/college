@@ -44,7 +44,7 @@ export default function SiteFooter() {
         </div>
         <Separator className="my-6" />
         <p className="text-xs text-muted-foreground">
-          © {new Date().getFullYear()} GHRCE — Mock Internship Portal (demo).
+          © {new Date().getFullYear()} GHRCE — Internship Portal.
         </p>
       </div>
     </footer>
