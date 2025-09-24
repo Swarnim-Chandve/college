@@ -19,7 +19,7 @@ import {
   SidebarSeparator,
   SidebarRail,
 } from "@/components/ui/sidebar"
-import { Home, Briefcase, LogOut, CalendarCheck } from "lucide-react"
+import { Home, Briefcase, LogOut, CalendarCheck, FileCheck2, Settings } from "lucide-react"
 import { logout } from "@/lib/auth"
 import { useEffect, useState } from "react"
 import { getSession } from "@/lib/auth"
@@ -65,6 +65,22 @@ export function StudentSidebar() {
                   <Link href="/student">
                     <Home />
                     <span>Home</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={menuActive("/student/applications")}> 
+                  <Link href="/student/applications">
+                    <FileCheck2 />
+                    <span>My Applications</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={menuActive("/student/settings")}>
+                  <Link href="/student/settings">
+                    <Settings />
+                    <span>Settings</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>

@@ -14,7 +14,11 @@ import {
   getStuLoginByStudentId,
   getStudentProfileByStudentId,
   upsertStudentProfile,
+  createStuLogin,
+  generateStudentPassword,
+  setStuLoginForStudent,
 } from "@/lib/db"
+import { sendEmail } from "@/lib/email"
 
 export default function RegistrationPage() {
   const { toast } = useToast()
@@ -40,17 +44,17 @@ export default function RegistrationPage() {
 
   function fetchDetails() {
     if (!studentId.trim()) {
-      toast({ description: "Enter Student ID number." })
+      toast({ title: "Student ID required", description: "Enter Student ID number.", variant: "destructive" as any })
       return
     }
     const roll = findRollByStudentId(studentId.trim())
     if (!roll) {
-      toast({ description: "No record found in roll list. Please verify Student ID." })
+      toast({ title: "Not found", description: "No record found in roll list. Please verify Student ID.", variant: "destructive" as any })
       return
     }
     const existingProfile = getStudentProfileByStudentId(roll.studentId)
     if (existingProfile) {
-      toast({ description: "You are already registered." })
+      toast({ description: "You are already registered.", title: "Registration Exists", variant: "destructive" as any })
       setFetched(true)
       setDegree(existingProfile.degree)
       setBranch(existingProfile.branch)
@@ -73,17 +77,17 @@ export default function RegistrationPage() {
     setFetched(true)
   }
 
-  function onRegister() {
+  async function onRegister() {
     if (!fetched) {
-      toast({ description: "Fetch details before registering." })
+      toast({ title: "Action needed", description: "Fetch details before registering.", variant: "destructive" as any })
       return
     }
     if (!email || !mobile) {
-      toast({ description: "Please fill E-Mail ID and Mobile Number." })
+      toast({ title: "Missing fields", description: "Please fill E-Mail ID and Mobile Number.", variant: "destructive" as any })
       return
     }
     if (!agree) {
-      toast({ description: "You must agree to the terms and conditions." })
+      toast({ title: "Agreement required", description: "You must agree to the terms and conditions.", variant: "destructive" as any })
       return
     }
     setLoading(true)
@@ -100,11 +104,23 @@ export default function RegistrationPage() {
       academicYear,
       pictureUrl: "/diverse-student-profiles.png",
     })
+    // Create student login if not exists
+    if (!getStuLoginByStudentId(studentId.trim())) {
+      const pwd = generateStudentPassword()
+      createStuLogin({ email, password: pwd, studentId: studentId.trim() })
+      await sendEmail({
+        to: email,
+        subject: "Your GHRCE Portal Password",
+        text: `Hello ${name},\n\nYour initial password is ${pwd}.\nLogin at the portal and change it later.`,
+      })
+      toast({ title: "Password Sent", description: `We emailed your initial password.` })
+    }
     setLoading(false)
-    toast({ description: "Registration saved." })
+    toast({ title: "Registration saved", description: "Welcome to the portal." })
   }
 
   const alreadyHasLogin = studentId ? !!getStuLoginByStudentId(studentId) : false
+  const alreadyHasProfile = studentId ? !!getStudentProfileByStudentId(studentId) : false
 
   return (
     <div className="min-h-svh flex flex-col">
@@ -182,9 +198,32 @@ export default function RegistrationPage() {
               <div className="rounded-md border bg-muted p-3 text-sm">You are already registered.</div>
             )}
             <div className="flex justify-end">
-              <Button onClick={onRegister} disabled={loading}>
-                {loading ? "Saving..." : "Register"}
-              </Button>
+              {alreadyHasLogin || alreadyHasProfile ? (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={async () => {
+                    if (!studentId || !email) {
+                      toast({ title: "Missing info", description: "Enter Student ID and Email to resend password.", variant: "destructive" as any })
+                      return
+                    }
+                    const newPwd = generateStudentPassword()
+                    setStuLoginForStudent(studentId.trim(), email, newPwd)
+                    await sendEmail({
+                      to: email,
+                      subject: "GHRCE Portal Password Reset",
+                      text: `Hello ${name},\n\nYour new password is ${newPwd}.`,
+                    })
+                    toast({ title: "Password Sent", description: `We emailed your new password.` })
+                  }}
+                >
+                  Resend Password
+                </Button>
+              ) : (
+                <Button onClick={onRegister} disabled={loading}>
+                  {loading ? "Saving..." : "Register"}
+                </Button>
+              )}
             </div>
           </CardContent>
         </Card>

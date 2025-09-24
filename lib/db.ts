@@ -1,6 +1,20 @@
 "use client"
 
-import type { DB, RollList, StuLogin, StuProfile, FacReg, FacRole, Company, InternshipApplication } from "./types"
+import type {
+  DB,
+  RollList,
+  StuLogin,
+  StuProfile,
+  FacReg,
+  FacRole,
+  Company,
+  InternshipApplication,
+  RollListLegacy,
+  StuLoginLegacy,
+  StuProfileLegacy,
+  FacRegLegacy,
+  FacRole1Legacy,
+} from "./types"
 
 const STORAGE_KEY = "ghrce_db_v1"
 
@@ -10,6 +24,12 @@ function now() {
 
 function uid(prefix = "id") {
   return `${prefix}_${Math.random().toString(36).slice(2, 10)}`
+}
+
+export function generateStudentPassword(): string {
+  const rand = Math.random().toString(36).slice(2, 8).toUpperCase()
+  const num = Math.floor(1000 + Math.random() * 9000)
+  return `GHRCE-${rand}${num}`
 }
 
 function getDB(): DB {
@@ -37,58 +57,19 @@ export function resetDB() {
 export function seedDB(): DB {
   const db: DB = {
     rolllist: [
-      {
-        studentId: "GHRCE2025CSE001",
-        degree: "B.Tech",
-        branch: "CSE",
-        name: "Aarav Sharma",
-        rollNo: "CSE-01",
-        semester: "6",
-        section: "A",
-        academicYear: "2024-25",
-        pictureUrl: "/student-aarav.png",
-      },
-      {
-        studentId: "GHRCE2025ECE002",
-        degree: "B.Tech",
-        branch: "ECE",
-        name: "Isha Patel",
-        rollNo: "ECE-12",
-        semester: "6",
-        section: "B",
-        academicYear: "2024-25",
-        pictureUrl: "/student-isha.png",
-      },
+      { studentId: "2021ACSC1101155", degree: "B.Tech", branch: "CSE", name: "ADITYA PRAMOD BHAGAT", rollNo: "41", semester: "8", section: "A", academicYear: "2024-25" },
+      { studentId: "2021ACSC1109008", degree: "B.Tech", branch: "CSE", name: "SAWAN MANTOO", rollNo: "64", semester: "8", section: "B", academicYear: "2024-25" },
+      { studentId: "2021ACSC1101129", degree: "B.Tech", branch: "CSE", name: "ASHISH KUMAR SINGH", rollNo: "56", semester: "8", section: "A", academicYear: "2024-25" },
+      { studentId: "2021ACSC1101183", degree: "B.Tech", branch: "CSE", name: "BHUMENDRA CHAITRAM BOHARE", rollNo: "65", semester: "8", section: "A", academicYear: "2024-25" },
+      { studentId: "2021ACSC1111085", degree: "B.Tech", branch: "CSE", name: "AVANTI AVINASH CHINCHONE", rollNo: "15", semester: "8", section: "A", academicYear: "2024-25" },
     ],
-    stulogin: [
-      {
-        email: "aarav@example.com",
-        password: "password123",
-        studentId: "GHRCE2025CSE001",
-      },
-    ],
-    stuprofile: [
-      {
-        studentId: "GHRCE2025CSE001",
-        email: "aarav@example.com",
-        mobile: "9876543210",
-        degree: "B.Tech",
-        branch: "CSE",
-        name: "Aarav Sharma",
-        rollNo: "CSE-01",
-        semester: "6",
-        section: "A",
-        academicYear: "2024-25",
-        pictureUrl: "/student-aarav.png",
-        createdAt: now(),
-        updatedAt: now(),
-      },
-    ],
+    stulogin: [],
+    stuprofile: [],
     facreg: [
-      { email: "faculty1@ghrce.com", password: "password123", name: "Dr. Ananya Gupta" },
-      { email: "coordinator@ghrce.com", password: "password123", name: "Prof. Vivek Joshi" },
-      { email: "dean@ghrce.com", password: "password123", name: "Dean Priya Nair" },
-      { email: "admin@ghrce.com", password: "password123", name: "Admin Office" },
+      { email: "faculty1@ghrce.com", password: "password123", name: "Dr. Ananya Gupta", employeeId: "EMP001" },
+      { email: "coordinator@ghrce.com", password: "password123", name: "Prof. Vivek Joshi", employeeId: "EMP100" },
+      { email: "dean@ghrce.com", password: "password123", name: "Dean Priya Nair", employeeId: "EMP500" },
+      { email: "admin@ghrce.com", password: "password123", name: "Admin Office", employeeId: "EMP999" },
     ],
     facrole1: [
       { email: "faculty1@ghrce.com", role: "faculty" },
@@ -123,6 +104,12 @@ export function seedDB(): DB {
       },
     ],
     internships: [],
+    // Legacy-style tables (initially empty)
+    rolllist_legacy: [],
+    stulogin_legacy: [],
+    stuprofile_legacy: [],
+    facreg_legacy: [],
+    facrole1_legacy: [],
   }
   setDB(db)
   return db
@@ -167,6 +154,17 @@ export function getStuLoginByStudentId(studentId: string): StuLogin | undefined 
 export function createStuLogin(rec: StuLogin) {
   const db = getDB()
   db.stulogin.push(rec)
+  setDB(db)
+}
+
+export function setStuLoginForStudent(studentId: string, email: string, password: string) {
+  const db = getDB()
+  const existing = db.stulogin.find((s) => s.studentId === studentId)
+  if (existing) {
+    db.stulogin = db.stulogin.map((s) => (s.studentId === studentId ? { email, password, studentId } : s))
+  } else {
+    db.stulogin.push({ email, password, studentId })
+  }
   setDB(db)
 }
 
@@ -216,6 +214,10 @@ export function listInternshipsByStudent(studentId: string): InternshipApplicati
   return getDB().internships.filter((i) => i.studentId === studentId)
 }
 
+export function listInternshipsByDuration(duration: "2w" | "4w" | "6m"): InternshipApplication[] {
+  return getDB().internships.filter((i) => i.duration === duration)
+}
+
 export function updateInternshipStatus(
   id: string,
   next: { action: "approve"; role: "faculty" | "coordinator" | "dean"; by: string } | { action: "reject"; by: string },
@@ -244,6 +246,36 @@ export function updateInternshipStatus(
   setDB(db)
 }
 
+export function attachInternshipCertificate(
+  id: string,
+  payload: { fileName: string; fileSize: number; fileType: string; url: string },
+) {
+  const db = getDB()
+  db.internships = db.internships.map((i) => {
+    if (i.id !== id) return i
+    return {
+      ...i,
+      certificate: { ...payload, uploadedAt: now() },
+      updatedAt: now(),
+    }
+  })
+  setDB(db)
+}
+
+export function verifyInternshipCertificate(id: string, by: string) {
+  const db = getDB()
+  db.internships = db.internships.map((i) => {
+    if (i.id !== id) return i
+    if (!i.certificate) return i
+    return {
+      ...i,
+      certificate: { ...i.certificate, verified: { by, at: now() } },
+      updatedAt: now(),
+    }
+  })
+  setDB(db)
+}
+
 export function getAllStudents(): StuProfile[] {
   const db = getDB()
   return db.stuprofile
@@ -251,4 +283,130 @@ export function getAllStudents(): StuProfile[] {
 
 export function getAllDB(): DB {
   return getDB()
+}
+
+// Legacy table helpers
+export function listRolllistLegacy(): RollListLegacy[] {
+  return getDB().rolllist_legacy
+}
+export function insertRolllistLegacy(rec: RollListLegacy) {
+  const db = getDB()
+  db.rolllist_legacy.push(rec)
+  setDB(db)
+}
+
+export function listStuLoginLegacy(): StuLoginLegacy[] {
+  return getDB().stulogin_legacy
+}
+export function insertStuLoginLegacy(rec: StuLoginLegacy) {
+  const db = getDB()
+  db.stulogin_legacy.push(rec)
+  setDB(db)
+}
+
+export function listStuProfileLegacy(): StuProfileLegacy[] {
+  return getDB().stuprofile_legacy
+}
+export function insertStuProfileLegacy(rec: StuProfileLegacy) {
+  const db = getDB()
+  db.stuprofile_legacy.push(rec)
+  setDB(db)
+}
+
+export function listFacRegLegacy(): FacRegLegacy[] {
+  return getDB().facreg_legacy
+}
+export function insertFacRegLegacy(rec: FacRegLegacy) {
+  const db = getDB()
+  db.facreg_legacy.push(rec)
+  setDB(db)
+}
+
+export function listFacRole1Legacy(): FacRole1Legacy[] {
+  return getDB().facrole1_legacy
+}
+export function insertFacRole1Legacy(rec: FacRole1Legacy) {
+  const db = getDB()
+  db.facrole1_legacy.push(rec)
+  setDB(db)
+}
+
+// TSV Import helpers (tab-separated values)
+function parseTSV(tsv: string): string[][] {
+  return tsv
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((l) => l.length > 0)
+    .map((line) => line.split("\t"))
+}
+
+export function importRollListFromTSV(tsv: string) {
+  const rows = parseTSV(tsv)
+  const db = getDB()
+  for (const r of rows) {
+    // Expected: Dept, Sem, Sec, RollNo, Name, RegistrationId, Session, dtype
+    const [dept, sem, sec, rollNo, name, regId, session, dtype] = r
+    const rec: RollList = {
+      studentId: regId,
+      degree: dtype?.toUpperCase() === "UG" ? "B.Tech" : dtype || "",
+      branch: dept,
+      name,
+      rollNo: String(rollNo),
+      semester: String(sem ?? ""),
+      section: sec,
+      academicYear: session,
+    }
+    // upsert by studentId
+    const idx = db.rolllist.findIndex((x) => x.studentId === rec.studentId)
+    if (idx >= 0) db.rolllist[idx] = rec
+    else db.rolllist.push(rec)
+  }
+  setDB(db)
+}
+
+export function importStuProfileFromTSV(tsv: string) {
+  const rows = parseTSV(tsv)
+  const db = getDB()
+  for (const r of rows) {
+    // Expected: RegistrationID, Name, Email, Dept, Photo, Date, Session, Mobile, Sem, Section, RollNo, Dtype
+    const [regId, name, email, dept, photo, _date, session, mobile, sem, section, rollNo, dtype] = r
+    const base = {
+      studentId: regId,
+      email,
+      mobile,
+      degree: dtype?.toUpperCase() === "UG" ? "B.Tech" : dtype || "",
+      branch: dept,
+      name,
+      rollNo: String(rollNo),
+      semester: String(sem ?? ""),
+      section: section ?? "",
+      academicYear: session,
+      pictureUrl: photo || "/placeholder-user.jpg",
+    }
+    const existing = db.stuprofile.find((s) => s.studentId === regId)
+    if (existing) {
+      const updated = { ...existing, ...base, updatedAt: now() }
+      db.stuprofile = db.stuprofile.map((s) => (s.studentId === regId ? updated : s))
+    } else {
+      db.stuprofile.push({ ...base, createdAt: now(), updatedAt: now() })
+    }
+  }
+  setDB(db)
+}
+
+export function importStuLoginFromTSV(tsv: string) {
+  const rows = parseTSV(tsv)
+  const db = getDB()
+  for (const r of rows) {
+    // Expected: RegistrationId, Name, Email, Password, Date, Session
+    const [regId, _name, email, password] = r
+    const existing = db.stulogin.find((s) => s.studentId === regId)
+    const rec: StuLogin = { email, password: password || "", studentId: regId }
+    if (existing) {
+      db.stulogin = db.stulogin.map((s) => (s.studentId === regId ? rec : s))
+    } else {
+      db.stulogin.push(rec)
+    }
+  }
+  setDB(db)
 }

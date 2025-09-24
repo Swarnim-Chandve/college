@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { toISOFromInput, diffDaysInclusive } from "@/lib/date"
 import { useToast } from "@/hooks/use-toast"
+// Removed separate dropdown; using a single input with datalist suggestions
 
 const durationDays: Record<string, number> = {
   "2w": 14,
@@ -32,6 +33,7 @@ export default function InternshipFormPage() {
   // Step 1
   const [query, setQuery] = useState("")
   const [companies, setCompanies] = useState<any[]>([])
+  const [allCompanies, setAllCompanies] = useState<any[]>([])
   // Step 2
   const [companyId, setCompanyId] = useState<string>("")
   const company = useMemo(() => (companyId ? getCompanyById(companyId) : undefined), [companyId])
@@ -46,11 +48,30 @@ export default function InternshipFormPage() {
       const p = getStudentProfileByStudentId(s.studentId)
       setProfile(p)
     }
-    setCompanies(searchCompaniesByName(""))
+    const base = searchCompaniesByName("")
+    const sorted = [...base].sort((a, b) => a.name.localeCompare(b.name))
+    setAllCompanies(sorted)
+    setCompanies(sorted)
   }, [])
 
+  // Live filter as user types
+  useEffect(() => {
+    search()
+  }, [query])
+
   function search() {
-    setCompanies(searchCompaniesByName(query))
+    const s = query.trim().toLowerCase()
+    if (!s) {
+      setCompanies(allCompanies)
+      return
+    }
+    setCompanies(allCompanies.filter((c) => c.name.toLowerCase().includes(s)))
+  }
+
+  function go() {
+    const exact = allCompanies.find((c) => c.name.toLowerCase() === query.trim().toLowerCase())
+    if (exact) setCompanyId(exact.id)
+    search()
   }
 
   function selectCompany(id: string) {
@@ -59,20 +80,20 @@ export default function InternshipFormPage() {
 
   function submit() {
     if (!profile) {
-      toast({ description: "Profile missing." })
+      toast({ title: "Profile missing", description: "Please complete registration and try again.", variant: "destructive" as any })
       return
     }
     if (!company) {
-      toast({ description: "Select a company." })
+      toast({ title: "No company selected", description: "Choose a company from list or dropdown.", variant: "destructive" as any })
       return
     }
     if (!from || !to) {
-      toast({ description: "Select From and To dates." })
+      toast({ title: "Dates required", description: "Select From and To dates.", variant: "destructive" as any })
       return
     }
     const required = durationDays[duration]
-    if (totalDays !== required) {
-      toast({ description: `Total days must be exactly ${required} for this internship type.` })
+    if (totalDays < required) {
+      toast({ title: "Insufficient duration", description: `Total days must be at least ${required} for this internship type.`, variant: "destructive" as any })
       return
     }
     createInternshipApplication({
@@ -96,7 +117,7 @@ export default function InternshipFormPage() {
       status: "pending",
       approvals: {},
     })
-    toast({ description: "Application submitted." })
+    toast({ title: "Application submitted", description: "Your IRF is pending approval." })
     setFrom("")
     setTo("")
   }
@@ -148,8 +169,21 @@ export default function InternshipFormPage() {
           <div className="space-y-3">
             <h4 className="font-semibold">Step 1: Company Search</h4>
             <div className="flex gap-2">
-              <Input placeholder="Search by company name" value={query} onChange={(e) => setQuery(e.target.value)} />
-              <Button onClick={search}>Search</Button>
+              <Input
+                list="companyList"
+                placeholder="Type a company name (A–Z suggestions)"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") go()
+                }}
+              />
+              <datalist id="companyList">
+                {allCompanies.map((c) => (
+                  <option key={c.id} value={c.name} />
+                ))}
+              </datalist>
+              <Button onClick={go}>Go</Button>
             </div>
             <div className="overflow-x-auto rounded-md border">
               <Table>

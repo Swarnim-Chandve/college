@@ -11,7 +11,8 @@ import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { loginStudent, loginFaculty } from "@/lib/auth"
-import { getStuLoginByEmail } from "@/lib/db"
+import { getFacultyByEmail, getStuLoginByEmail, setStuLoginForStudent } from "@/lib/db"
+import { sendEmail } from "@/lib/email"
 import { useToast } from "@/hooks/use-toast"
 
 export default function LoginPage() {
@@ -20,33 +21,78 @@ export default function LoginPage() {
   const [studentEmail, setStudentEmail] = useState("")
   const [studentPassword, setStudentPassword] = useState("")
   const [facEmail, setFacEmail] = useState("")
+  const [facEmpId, setFacEmpId] = useState("")
   const [facPassword, setFacPassword] = useState("")
+  const [loadingForgot, setLoadingForgot] = useState(false)
 
   function onStudentLogin() {
-    const rec = getStuLoginByEmail(studentEmail)
+    const rec = getStuLoginByEmail(studentEmail.trim())
     if (!rec) {
       router.push("/register")
       return
     }
-    const session = loginStudent(studentEmail, studentPassword)
+    const session = loginStudent(studentEmail.trim(), studentPassword.trim())
     if (!session) {
-      toast({ description: "Invalid student credentials." })
+      toast({ title: "Login failed", description: "Invalid student credentials.", variant: "destructive" as any })
       return
     }
     router.push("/student")
   }
 
-  function onFacultyLogin() {
-    if (!facEmail.toLowerCase().endsWith("@ghrce.com")) {
-      toast({ description: "Faculty email must end with @ghrce.com" })
+  async function onStudentForgot() {
+    const rec = getStuLoginByEmail(studentEmail.trim())
+    if (!rec) {
+      toast({ title: "No account", description: "Email not found.", variant: "destructive" as any })
       return
     }
-    const session = loginFaculty(facEmail, facPassword)
+    setLoadingForgot(true)
+    try {
+      const newPwd = `GHRCE-${Math.random().toString(36).slice(2, 6).toUpperCase()}${Math.floor(1000 + Math.random() * 9000)}`
+      setStuLoginForStudent(rec.studentId, rec.email, newPwd)
+      await sendEmail({ to: rec.email, subject: "GHRCE Password Reset", text: `Your new password is ${newPwd}` })
+      toast({ title: "Password Sent", description: "Check your email for the new password." })
+    } finally {
+      setLoadingForgot(false)
+    }
+  }
+
+  function onFacultyLogin() {
+    if (!facEmail.trim().toLowerCase().endsWith("@ghrce.com")) {
+      toast({ title: "Invalid email", description: "Faculty email must end with @ghrce.com", variant: "destructive" as any })
+      return
+    }
+    const fac = getFacultyByEmail(facEmail.trim())
+    if (!fac || (fac.employeeId && fac.employeeId !== facEmpId)) {
+      toast({ title: "Login failed", description: "Invalid employee ID or email.", variant: "destructive" as any })
+      return
+    }
+    const session = loginFaculty(facEmail.trim(), facPassword.trim())
     if (!session) {
-      toast({ description: "Invalid faculty credentials." })
+      toast({ title: "Login failed", description: "Invalid faculty credentials.", variant: "destructive" as any })
       return
     }
     router.push("/faculty")
+  }
+
+  async function onFacultyForgot() {
+    if (!facEmail.trim().toLowerCase().endsWith("@ghrce.com")) {
+      toast({ title: "Invalid email", description: "Faculty email must end with @ghrce.com", variant: "destructive" as any })
+      return
+    }
+    const fac = getFacultyByEmail(facEmail.trim())
+    if (!fac || (fac.employeeId && fac.employeeId !== facEmpId)) {
+      toast({ title: "Not found", description: "Employee ID or email invalid.", variant: "destructive" as any })
+      return
+    }
+    setLoadingForgot(true)
+    try {
+      const newPwd = `GHRCE-${Math.random().toString(36).slice(2, 6).toUpperCase()}${Math.floor(1000 + Math.random() * 9000)}`
+      ;(fac as any).password = newPwd
+      await sendEmail({ to: fac.email, subject: "GHRCE Faculty Password Reset", text: `Your new password is ${newPwd}` })
+      toast({ title: "Password Sent", description: "Check your email for the new password." })
+    } finally {
+      setLoadingForgot(false)
+    }
   }
 
   return (
@@ -77,12 +123,8 @@ export default function LoginPage() {
                 <div className="space-y-2">
                   <div className="flex items-center">
                     <Label htmlFor="s-password">Password</Label>
-                    <Button
-                      variant="link"
-                      className="ml-auto p-0 text-sm"
-                      onClick={() => alert("Forgot password flow is not implemented in demo.")}
-                    >
-                      Forgot Password
+                    <Button variant="link" className="ml-auto p-0 text-sm" onClick={onStudentForgot} disabled={loadingForgot}>
+                      {loadingForgot ? "Sending..." : "Forgot Password"}
                     </Button>
                   </div>
                   <Input
@@ -115,14 +157,14 @@ export default function LoginPage() {
                   <p className="text-xs text-muted-foreground">Must end with @ghrce.com</p>
                 </div>
                 <div className="space-y-2">
+                  <Label htmlFor="f-emp">Employee ID</Label>
+                  <Input id="f-emp" value={facEmpId} onChange={(e) => setFacEmpId(e.target.value)} placeholder="EMP001" />
+                </div>
+                <div className="space-y-2">
                   <div className="flex items-center">
                     <Label htmlFor="f-password">Password</Label>
-                    <Button
-                      variant="link"
-                      className="ml-auto p-0 text-sm"
-                      onClick={() => alert("Forgot password flow is not implemented in demo.")}
-                    >
-                      Forgot Password
+                    <Button variant="link" className="ml-auto p-0 text-sm" onClick={onFacultyForgot} disabled={loadingForgot}>
+                      {loadingForgot ? "Sending..." : "Forgot Password"}
                     </Button>
                   </div>
                   <Input
