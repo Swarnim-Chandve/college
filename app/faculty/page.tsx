@@ -18,9 +18,9 @@ function StudentsTable() {
     () =>
       rows.filter(
         (r) =>
-          r.name.toLowerCase().includes(q.toLowerCase()) ||
-          r.studentId.toLowerCase().includes(q.toLowerCase()) ||
-          r.rollNo.toLowerCase().includes(q.toLowerCase()),
+          r.name?.toLowerCase().includes(q.toLowerCase()) ||
+          r.studentId?.toLowerCase().includes(q.toLowerCase()) ||
+          r.rollNo?.toLowerCase().includes(q.toLowerCase()),
       ),
     [rows, q],
   )
@@ -134,16 +134,16 @@ function ApprovalsTable() {
     if (filters.duration && r.duration !== (filters.duration as any)) return false
     if (filters.session && p && p.academicYear !== filters.session) return false
     if (filters.semester && p && p.semester !== filters.semester) return false
-    if (filters.branch && p && !p.branch.toLowerCase().includes(filters.branch.toLowerCase())) return false
+    if (filters.branch && p && !p.branch?.toLowerCase().includes(filters.branch.toLowerCase())) return false
     if (filters.ugpg && p) {
-      const deg = p.degree.toLowerCase()
+      const deg = p.degree?.toLowerCase() || ''
       const isUG = deg.includes("b.") || deg.includes("btech") || deg.includes("btech") || deg.includes("btech")
       if (filters.ugpg === "UG" && !isUG) return false
       if (filters.ugpg === "PG" && isUG) return false
     }
     if (search) {
       const s = search.toLowerCase()
-      const hay = [r.studentId, p?.name, p?.branch, r.companySnapshot.name].join(" ").toLowerCase()
+      const hay = [r.studentId, p?.name, p?.branch, r.companySnapshot?.name].join(" ").toLowerCase()
       if (!hay.includes(s)) return false
     }
     return true
