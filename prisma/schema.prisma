@@ -89,6 +89,20 @@ model Company {
   @@map("companies")
 }
 
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  password      String    // Hashed with bcrypt
+  name          String?
+  role          String    // student, faculty, admin
+  studentId     String?   // For students
+  employeeId    String?   // For faculty
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@map("users")
+}
+
 model InternshipApplication {
   id          String @id @default(cuid())
   studentId   String

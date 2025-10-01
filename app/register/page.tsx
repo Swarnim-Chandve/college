@@ -11,14 +11,10 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { useToast } from "@/hooks/use-toast"
 import {
   findRollByStudentId,
-  getStuLoginByStudentId,
   getStudentProfileByStudentId,
   upsertStudentProfile,
-  createStuLogin,
-  generateStudentPassword,
-  setStuLoginForStudent,
 } from "@/lib/db"
-import { sendEmail } from "@/lib/email"
+import { registerStudent, getUserByStudentId } from "@/lib/auth-new"
 
 export default function RegistrationPage() {
   const { toast } = useToast()
@@ -52,19 +48,20 @@ export default function RegistrationPage() {
       toast({ title: "Not found", description: "No record found in roll list. Please verify Student ID.", variant: "destructive" as any })
       return
     }
-    const existingProfile = getStudentProfileByStudentId(roll.studentId)
-    if (existingProfile) {
+    // Check if user already exists in new auth system
+    const existingUser = await getUserByStudentId(roll.studentId)
+    if (existingUser) {
       toast({ description: "You are already registered.", title: "Registration Exists", variant: "destructive" as any })
       setFetched(true)
-      setDegree(existingProfile.degree)
-      setBranch(existingProfile.branch)
-      setName(existingProfile.name)
-      setRollNo(existingProfile.rollNo)
-      setSemester(existingProfile.semester)
-      setSection(existingProfile.section)
-      setAcademicYear(existingProfile.academicYear)
-      setEmail(existingProfile.email)
-      setMobile(existingProfile.mobile)
+      // We'll need to get profile data from the roll list since we don't have it in the new system yet
+      setDegree(roll.degree)
+      setBranch(roll.branch)
+      setName(roll.name)
+      setRollNo(roll.rollNo)
+      setSemester(roll.semester)
+      setSection(roll.section)
+      setAcademicYear(roll.academicYear)
+      setEmail(existingUser.email)
       return
     }
     setDegree(roll.degree)
@@ -91,35 +88,54 @@ export default function RegistrationPage() {
       return
     }
     setLoading(true)
-    const profile = upsertStudentProfile({
-      studentId: studentId.trim(),
-      email,
-      mobile,
-      degree,
-      branch,
-      name,
-      rollNo,
-      semester,
-      section,
-      academicYear,
-      pictureUrl: "/diverse-student-profiles.png",
-    })
-    // Create student login if not exists
-    if (!getStuLoginByStudentId(studentId.trim())) {
-      const pwd = generateStudentPassword()
-      createStuLogin({ email, password: pwd, studentId: studentId.trim() })
-      await sendEmail({
-        to: email,
-        subject: "Your GHRCE Portal Password",
-        text: `Hello ${name},\n\nYour initial password is ${pwd}.\nLogin at the portal and change it later.`,
+    
+    try {
+      // Register student with new auth system
+      const result = await registerStudent({
+        email,
+        name,
+        studentId: studentId.trim()
       })
-      toast({ title: "Password Sent", description: `We emailed your initial password.` })
+      
+      if (result.success) {
+        // Also create profile in legacy system for now (we'll migrate this later)
+        upsertStudentProfile({
+          studentId: studentId.trim(),
+          email,
+          mobile,
+          degree,
+          branch,
+          name,
+          rollNo,
+          semester,
+          section,
+          academicYear,
+          pictureUrl: "/diverse-student-profiles.png",
+        })
+        
+        toast({ 
+          title: "Registration Complete", 
+          description: `Password sent to ${email}. Check your email for login credentials.` 
+        })
+      } else {
+        toast({ 
+          title: "Registration Failed", 
+          description: result.error || "Unknown error occurred",
+          variant: "destructive" as any 
+        })
+      }
+    } catch (error) {
+      toast({ 
+        title: "Registration Error", 
+        description: "Failed to register. Please try again.",
+        variant: "destructive" as any 
+      })
     }
+    
     setLoading(false)
-    toast({ title: "Registration saved", description: "Welcome to the portal." })
   }
 
-  const alreadyHasLogin = studentId ? !!getStuLoginByStudentId(studentId) : false
+  const alreadyHasLogin = studentId ? false : false // We'll check this async later
   const alreadyHasProfile = studentId ? !!getStudentProfileByStudentId(studentId) : false
 
   return (

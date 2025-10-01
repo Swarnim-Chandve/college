@@ -10,9 +10,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
-import { loginStudent, loginFaculty } from "@/lib/auth"
-import { getFacultyByEmail, getStuLoginByEmail, setStuLoginForStudent } from "@/lib/db"
-import { sendEmail } from "@/lib/email"
+import { loginUser, forgotPassword, getUserByEmail } from "@/lib/auth-new"
+import { getFacultyByEmail } from "@/lib/db"
 import { useToast } from "@/hooks/use-toast"
 
 export default function LoginPage() {
@@ -25,52 +24,48 @@ export default function LoginPage() {
   const [facPassword, setFacPassword] = useState("")
   const [loadingForgot, setLoadingForgot] = useState(false)
 
-  function onStudentLogin() {
-    const rec = getStuLoginByEmail(studentEmail.trim())
-    if (!rec) {
-      router.push("/register")
-      return
-    }
-    const session = loginStudent(studentEmail.trim(), studentPassword.trim())
+  async function onStudentLogin() {
+    const session = await loginUser(studentEmail.trim(), studentPassword.trim())
     if (!session) {
       toast({ title: "Login failed", description: "Invalid student credentials.", variant: "destructive" as any })
       return
     }
-    router.push("/student")
+    
+    if (session.type === 'student') {
+      router.push("/student")
+    } else {
+      router.push("/faculty")
+    }
   }
 
   async function onStudentForgot() {
-    const rec = getStuLoginByEmail(studentEmail.trim())
-    if (!rec) {
-      toast({ title: "No account", description: "Email not found.", variant: "destructive" as any })
-      return
-    }
     setLoadingForgot(true)
     try {
-      const newPwd = `GHRCE-${Math.random().toString(36).slice(2, 6).toUpperCase()}${Math.floor(1000 + Math.random() * 9000)}`
-      setStuLoginForStudent(rec.studentId, rec.email, newPwd)
-      await sendEmail({ to: rec.email, subject: "GHRCE Password Reset", text: `Your new password is ${newPwd}` })
-      toast({ title: "Password Sent", description: "Check your email for the new password." })
+      const result = await forgotPassword(studentEmail.trim())
+      if (result.success) {
+        toast({ title: "Password Sent", description: "Check your email for the new password." })
+      } else {
+        toast({ title: "Error", description: result.error || "Failed to reset password.", variant: "destructive" as any })
+      }
+    } catch (error) {
+      toast({ title: "Error", description: "Failed to reset password.", variant: "destructive" as any })
     } finally {
       setLoadingForgot(false)
     }
   }
 
-  function onFacultyLogin() {
+  async function onFacultyLogin() {
     if (!facEmail.trim().toLowerCase().endsWith("@ghrce.com")) {
       toast({ title: "Invalid email", description: "Faculty email must end with @ghrce.com", variant: "destructive" as any })
       return
     }
-    const fac = getFacultyByEmail(facEmail.trim())
-    if (!fac || (fac.employeeId && fac.employeeId !== facEmpId)) {
-      toast({ title: "Login failed", description: "Invalid employee ID or email.", variant: "destructive" as any })
-      return
-    }
-    const session = loginFaculty(facEmail.trim(), facPassword.trim())
+    
+    const session = await loginUser(facEmail.trim(), facPassword.trim())
     if (!session) {
       toast({ title: "Login failed", description: "Invalid faculty credentials.", variant: "destructive" as any })
       return
     }
+    
     router.push("/faculty")
   }
 
@@ -79,17 +74,17 @@ export default function LoginPage() {
       toast({ title: "Invalid email", description: "Faculty email must end with @ghrce.com", variant: "destructive" as any })
       return
     }
-    const fac = getFacultyByEmail(facEmail.trim())
-    if (!fac || (fac.employeeId && fac.employeeId !== facEmpId)) {
-      toast({ title: "Not found", description: "Employee ID or email invalid.", variant: "destructive" as any })
-      return
-    }
+    
     setLoadingForgot(true)
     try {
-      const newPwd = `GHRCE-${Math.random().toString(36).slice(2, 6).toUpperCase()}${Math.floor(1000 + Math.random() * 9000)}`
-      ;(fac as any).password = newPwd
-      await sendEmail({ to: fac.email, subject: "GHRCE Faculty Password Reset", text: `Your new password is ${newPwd}` })
-      toast({ title: "Password Sent", description: "Check your email for the new password." })
+      const result = await forgotPassword(facEmail.trim())
+      if (result.success) {
+        toast({ title: "Password Sent", description: "Check your email for the new password." })
+      } else {
+        toast({ title: "Error", description: result.error || "Failed to reset password.", variant: "destructive" as any })
+      }
+    } catch (error) {
+      toast({ title: "Error", description: "Failed to reset password.", variant: "destructive" as any })
     } finally {
       setLoadingForgot(false)
     }
