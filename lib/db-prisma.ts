@@ -271,47 +271,90 @@ export async function setStuLoginForStudent(studentId: string, password: string)
 
 // Seed data functions
 export async function seedDatabase() {
-  // Check if data already exists
-  const existingCompanies = await prisma.company.count()
-  if (existingCompanies > 0) {
-    console.log('Database already seeded')
-    return
+  try {
+    console.log('Starting database seeding...')
+
+    // Check if data already exists
+    const existingCompanies = await prisma.company.count()
+    if (existingCompanies > 0) {
+      console.log('Database already seeded')
+      return
+    }
+
+    // Seed companies
+    const companies = [
+      { name: 'TechCorp Solutions', description: 'Leading technology company', website: 'https://techcorp.com', industry: 'Technology', size: 'Large', location: 'Mumbai' },
+      { name: 'GreenGrid Solutions', description: 'Sustainable energy solutions', website: 'https://greengrid.com', industry: 'Energy', size: 'Medium', location: 'Delhi' },
+      { name: 'DataFlow Systems', description: 'Data analytics and AI', website: 'https://dataflow.com', industry: 'Technology', size: 'Medium', location: 'Bangalore' },
+      { name: 'CloudTech Innovations', description: 'Cloud computing services', website: 'https://cloudtech.com', industry: 'Technology', size: 'Large', location: 'Hyderabad' },
+      { name: 'FinTech Dynamics', description: 'Financial technology solutions', website: 'https://fintech.com', industry: 'Finance', size: 'Medium', location: 'Pune' },
+      { name: 'AI Innovations Ltd', description: 'Artificial Intelligence solutions', website: 'https://aiinnovations.com', industry: 'Technology', size: 'Large', location: 'Bangalore' },
+      { name: 'CyberSec Pro', description: 'Cybersecurity services', website: 'https://cybersecpro.com', industry: 'Security', size: 'Medium', location: 'Mumbai' },
+      { name: 'BlockChain Solutions', description: 'Blockchain technology', website: 'https://blockchainsolutions.com', industry: 'Technology', size: 'Medium', location: 'Delhi' }
+    ]
+
+    for (const company of companies) {
+      await createCompany(company)
+    }
+
+    // Seed faculty registrations
+    const faculty = [
+      { fid: 'EMP001', name: 'Prof. Vivek Joshi', desg: 'Professor', dept: 'CSE', employeeId: 'EMP001' },
+      { fid: 'EMP002', name: 'Dr. Priya Sharma', desg: 'Associate Professor', dept: 'IT', employeeId: 'EMP002' },
+      { fid: 'EMP003', name: 'Prof. Rajesh Kumar', desg: 'Professor', dept: 'ECE', employeeId: 'EMP003' },
+      { fid: 'EMP004', name: 'Dr. Anjali Singh', desg: 'Assistant Professor', dept: 'CSE', employeeId: 'EMP004' },
+      { fid: 'EMP005', name: 'Prof. Manoj Gupta', desg: 'Professor', dept: 'ME', employeeId: 'EMP005' }
+    ]
+
+    for (const fac of faculty) {
+      await createFacReg(fac)
+    }
+
+    // Seed faculty roles
+    const roles = [
+      { session: '2024-25', fid: 'EMP001', name: 'Prof. Vivek Joshi', dept: 'CSE', email: 'vivek.joshi@ghrce.com', role: 'coordinator' },
+      { session: '2024-25', fid: 'EMP002', name: 'Dr. Priya Sharma', dept: 'IT', email: 'priya.sharma@ghrce.com', role: 'coordinator' },
+      { session: '2024-25', fid: 'EMP003', name: 'Prof. Rajesh Kumar', dept: 'ECE', email: 'rajesh.kumar@ghrce.com', role: 'coordinator' },
+      { session: '2024-25', fid: 'EMP004', name: 'Dr. Anjali Singh', dept: 'CSE', email: 'anjali.singh@ghrce.com', role: 'faculty' },
+      { session: '2024-25', fid: 'EMP005', name: 'Prof. Manoj Gupta', dept: 'ME', email: 'manoj.gupta@ghrce.com', role: 'faculty' }
+    ]
+
+    for (const role of roles) {
+      await createFacRole(role)
+    }
+
+    // Seed roll list with sample students
+    const rollList = [
+      { dept: 'CSE', sem: '8', sec: 'A', rno: '1', name: 'Aditya Pramod Bhagat', regno: '2021ACSC1101155', session: '2024-25', dtype: 'B.Tech' },
+      { dept: 'CSE', sem: '8', sec: 'A', rno: '2', name: 'Priya Sharma', regno: '2021ACSC1101156', session: '2024-25', dtype: 'B.Tech' },
+      { dept: 'CSE', sem: '8', sec: 'A', rno: '3', name: 'Rajesh Kumar', regno: '2021ACSC1101157', session: '2024-25', dtype: 'B.Tech' },
+      { dept: 'IT', sem: '8', sec: 'B', rno: '1', name: 'Sneha Patel', regno: '2021ACIT1101201', session: '2024-25', dtype: 'B.Tech' },
+      { dept: 'IT', sem: '8', sec: 'B', rno: '2', name: 'Amit Singh', regno: '2021ACIT1101202', session: '2024-25', dtype: 'B.Tech' },
+      { dept: 'ECE', sem: '8', sec: 'C', rno: '1', name: 'Neha Gupta', regno: '2021ACEC1101301', session: '2024-25', dtype: 'B.Tech' },
+      { dept: 'ECE', sem: '8', sec: 'C', rno: '2', name: 'Vikram Yadav', regno: '2021ACEC1101302', session: '2024-25', dtype: 'B.Tech' }
+    ]
+
+    for (const student of rollList) {
+      await createRollList(student)
+    }
+
+    // Create admin user
+    await createUser({
+      email: 'admin@ghrce.com',
+      password: 'password123',
+      name: 'Admin User',
+      role: 'admin',
+      employeeId: 'EMP999'
+    })
+
+    console.log('Database seeded successfully with:', {
+      companies: companies.length,
+      faculty: faculty.length,
+      roles: roles.length,
+      students: rollList.length
+    })
+  } catch (error) {
+    console.error('Seeding failed:', error)
+    throw error
   }
-
-  // Seed companies
-  const companies = [
-    { name: 'TechCorp Solutions', description: 'Leading technology company', website: 'https://techcorp.com', industry: 'Technology', size: 'Large', location: 'Mumbai' },
-    { name: 'GreenGrid Solutions', description: 'Sustainable energy solutions', website: 'https://greengrid.com', industry: 'Energy', size: 'Medium', location: 'Delhi' },
-    { name: 'DataFlow Systems', description: 'Data analytics and AI', website: 'https://dataflow.com', industry: 'Technology', size: 'Medium', location: 'Bangalore' },
-    { name: 'CloudTech Innovations', description: 'Cloud computing services', website: 'https://cloudtech.com', industry: 'Technology', size: 'Large', location: 'Hyderabad' },
-    { name: 'FinTech Dynamics', description: 'Financial technology solutions', website: 'https://fintech.com', industry: 'Finance', size: 'Medium', location: 'Pune' }
-  ]
-
-  for (const company of companies) {
-    await createCompany(company)
-  }
-
-  // Seed faculty
-  const faculty = [
-    { fid: 'EMP001', name: 'Prof. Vivek Joshi', desg: 'Professor', dept: 'CSE', employeeId: 'EMP001' },
-    { fid: 'EMP002', name: 'Dr. Priya Sharma', desg: 'Associate Professor', dept: 'IT', employeeId: 'EMP002' },
-    { fid: 'EMP003', name: 'Prof. Rajesh Kumar', desg: 'Professor', dept: 'ECE', employeeId: 'EMP003' }
-  ]
-
-  for (const fac of faculty) {
-    await createFacReg(fac)
-  }
-
-  // Seed faculty roles
-  const roles = [
-    { session: '2024-25', fid: 'EMP001', name: 'Prof. Vivek Joshi', dept: 'CSE', email: 'vivek.joshi@ghrce.com', role: 'coordinator' },
-    { session: '2024-25', fid: 'EMP002', name: 'Dr. Priya Sharma', dept: 'IT', email: 'priya.sharma@ghrce.com', role: 'coordinator' },
-    { session: '2024-25', fid: 'EMP003', name: 'Prof. Rajesh Kumar', dept: 'ECE', email: 'rajesh.kumar@ghrce.com', role: 'coordinator' }
-  ]
-
-  for (const role of roles) {
-    await createFacRole(role)
-  }
-
-  console.log('Database seeded successfully')
 }

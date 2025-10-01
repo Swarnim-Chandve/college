@@ -3,8 +3,15 @@
 import { useEffect, useMemo, useState } from "react"
 import { useSearchParams } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { getSession } from "@/lib/auth"
-import { getAllStudents, listInternships, resetDB, updateInternshipStatus, importRollListFromTSV, importStuLoginFromTSV, importStuProfileFromTSV, getStudentProfileByStudentId, verifyInternshipCertificate } from "@/lib/db"
+import { getSession } from "@/lib/auth-new"
+import { 
+  listStuProfiles, 
+  listInternshipApplications, 
+  updateInternshipApplicationStatus, 
+  verifyInternshipCertificate,
+  seedDatabase
+} from "@/lib/db-prisma"
+import { resetDB, importRollListFromTSV, importStuLoginFromTSV, importStuProfileFromTSV } from "@/lib/db"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -13,20 +20,26 @@ import { useToast } from "@/hooks/use-toast"
 
 function StudentsTable() {
   const [q, setQ] = useState("")
-  const [rows, setRows] = useState(getAllStudents())
+  const [rows, setRows] = useState<any[]>([])
   const filtered = useMemo(
     () =>
       rows.filter(
         (r) =>
           r.name?.toLowerCase().includes(q.toLowerCase()) ||
           r.studentId?.toLowerCase().includes(q.toLowerCase()) ||
-          r.rollNo?.toLowerCase().includes(q.toLowerCase()),
+          r.rollno?.toString().includes(q.toLowerCase()),
       ),
     [rows, q],
   )
+  
   useEffect(() => {
-    setRows(getAllStudents())
+    loadStudents()
   }, [])
+  
+  async function loadStudents() {
+    const students = await listStuProfiles()
+    setRows(students)
+  }
   return (
     <Card>
       <CardHeader>
@@ -44,7 +57,6 @@ function StudentsTable() {
                 <TableHead>Semester</TableHead>
                 <TableHead>Section</TableHead>
                 <TableHead>Branch</TableHead>
-                <TableHead>Degree</TableHead>
                 <TableHead>Email</TableHead>
                 <TableHead>Mobile</TableHead>
               </TableRow>
@@ -54,11 +66,10 @@ function StudentsTable() {
                 <TableRow key={s.studentId}>
                   <TableCell>{s.name}</TableCell>
                   <TableCell>{s.studentId}</TableCell>
-                  <TableCell>{s.rollNo}</TableCell>
+                  <TableCell>{s.rollno}</TableCell>
                   <TableCell>{s.semester}</TableCell>
                   <TableCell>{s.section}</TableCell>
                   <TableCell>{s.branch}</TableCell>
-                  <TableCell>{s.degree}</TableCell>
                   <TableCell>{s.email}</TableCell>
                   <TableCell>{s.mobile}</TableCell>
                 </TableRow>
@@ -82,13 +93,22 @@ function ApprovalsTable() {
   const session = getSession()
   const { toast } = useToast()
   const role = session?.type === "faculty" ? session.role : "faculty"
-  const [rows, setRows] = useState(listInternships())
+  const [rows, setRows] = useState<any[]>([])
   const [search, setSearch] = useState("")
   const [statusTab, setStatusTab] = useState<"all" | "pending" | "approved" | "rejected">("all")
   const [filters, setFilters] = useState({ duration: "", session: "", semester: "", branch: "", ugpg: "" })
 
+  useEffect(() => {
+    loadApplications()
+  }, [])
+
+  async function loadApplications() {
+    const applications = await listInternshipApplications()
+    setRows(applications)
+  }
+
   function refresh() {
-    setRows(listInternships())
+    loadApplications()
   }
 
   function canApprove(status: string) {
@@ -100,50 +120,51 @@ function ApprovalsTable() {
     return false
   }
 
-  function approve(id: string) {
+  async function approve(id: string) {
     if (!session || session.type !== "faculty") return
-    const r = session.role === "admin" ? "dean" : session.role // admin escalates to dean-level approval
-    updateInternshipStatus(id, { action: "approve", role: r as any, by: session.email })
-    toast({ title: "Approved", description: "Application moved to next stage." })
-    refresh()
+    try {
+      await updateInternshipApplicationStatus(id, "approved", session.email)
+      toast({ title: "Approved", description: "Application approved successfully." })
+      refresh()
+    } catch (error) {
+      toast({ title: "Error", description: "Failed to approve application.", variant: "destructive" as any })
+    }
   }
 
-  function reject(id: string) {
+  async function reject(id: string) {
     if (!session || session.type !== "faculty") return
-    updateInternshipStatus(id, { action: "reject", by: session.email })
-    toast({ title: "Rejected", description: "Application marked as rejected." })
-    refresh()
+    try {
+      await updateInternshipApplicationStatus(id, "rejected", undefined, session.email)
+      toast({ title: "Rejected", description: "Application rejected." })
+      refresh()
+    } catch (error) {
+      toast({ title: "Error", description: "Failed to reject application.", variant: "destructive" as any })
+    }
   }
 
-  function markVerified(id: string) {
+  async function markVerified(id: string) {
     if (!session || session.type !== "faculty") return
     if (role !== "coordinator" && role !== "admin" && role !== "dean") {
       toast({ title: "Not allowed", description: "Only coordinator/dean/admin can verify certificates.", variant: "destructive" as any })
       return
     }
-    verifyInternshipCertificate(id, session.email)
-    toast({ title: "Certificate verified", description: "Marked as verified." })
-    refresh()
+    try {
+      await verifyInternshipCertificate(id, session.email)
+      toast({ title: "Certificate verified", description: "Marked as verified." })
+      refresh()
+    } catch (error) {
+      toast({ title: "Error", description: "Failed to verify certificate.", variant: "destructive" as any })
+    }
   }
 
-  const rowsWithProfile = rows.map((r) => ({ r, p: getStudentProfileByStudentId(r.studentId) }))
-  const filtered = rowsWithProfile.filter(({ r, p }) => {
+  const filtered = rows.filter((r) => {
     if (statusTab === "pending" && r.status !== "pending") return false
-    if (statusTab === "approved" && !r.status.startsWith("approved_")) return false
+    if (statusTab === "approved" && r.status !== "approved") return false
     if (statusTab === "rejected" && r.status !== "rejected") return false
-    if (filters.duration && r.duration !== (filters.duration as any)) return false
-    if (filters.session && p && p.academicYear !== filters.session) return false
-    if (filters.semester && p && p.semester !== filters.semester) return false
-    if (filters.branch && p && !p.branch?.toLowerCase().includes(filters.branch.toLowerCase())) return false
-    if (filters.ugpg && p) {
-      const deg = p.degree?.toLowerCase() || ''
-      const isUG = deg.includes("b.") || deg.includes("btech") || deg.includes("btech") || deg.includes("btech")
-      if (filters.ugpg === "UG" && !isUG) return false
-      if (filters.ugpg === "PG" && isUG) return false
-    }
+    if (filters.duration && r.duration !== filters.duration) return false
     if (search) {
       const s = search.toLowerCase()
-      const hay = [r.studentId, p?.name, p?.branch, r.companySnapshot?.name].join(" ").toLowerCase()
+      const hay = [r.studentId, r.company].join(" ").toLowerCase()
       if (!hay.includes(s)) return false
     }
     return true
@@ -346,28 +367,18 @@ function AdminPanel() {
   const [loginTSV, setLoginTSV] = useState("")
   const [isMigrating, setIsMigrating] = useState(false)
 
-  const handleMigration = async () => {
+  const handleSeeding = async () => {
     setIsMigrating(true)
     try {
-      const response = await fetch('/api/migrate', { method: 'POST' })
-      const result = await response.json()
-      
-      if (result.success) {
-        toast({ 
-          title: "Migration Complete", 
-          description: "Data successfully migrated to PostgreSQL database!" 
-        })
-      } else {
-        toast({ 
-          title: "Migration Failed", 
-          description: result.error || "Unknown error occurred",
-          variant: "destructive"
-        })
-      }
+      await seedDatabase()
+      toast({ 
+        title: "Database Seeded", 
+        description: "Initial data has been added to the database!" 
+      })
     } catch (error) {
       toast({ 
-        title: "Migration Error", 
-        description: "Failed to migrate data",
+        title: "Seeding Failed", 
+        description: "Failed to seed database",
         variant: "destructive"
       })
     } finally {
@@ -384,16 +395,16 @@ function AdminPanel() {
         <p className="text-sm text-muted-foreground">Manage demo data and database migration.</p>
         
         <div className="space-y-2">
-          <div className="text-sm font-medium">Database Migration</div>
+          <div className="text-sm font-medium">Database Seeding</div>
           <p className="text-xs text-muted-foreground">
-            Migrate from localStorage to PostgreSQL database. This will preserve all existing data.
+            Add initial data to the database (companies, faculty, etc.)
           </p>
           <Button
-            onClick={handleMigration}
+            onClick={handleSeeding}
             disabled={isMigrating}
             className="bg-green-600 hover:bg-green-700"
           >
-            {isMigrating ? "Migrating..." : "Migrate to PostgreSQL"}
+            {isMigrating ? "Seeding..." : "Seed Database"}
           </Button>
         </div>
 
