@@ -2,13 +2,13 @@
 
 import { useParams } from "next/navigation"
 import { useEffect, useMemo, useState } from "react"
-import { getSession } from "@/lib/auth"
+import { getSession } from "@/lib/auth-new"
 import {
   getStudentProfileByStudentId,
   searchCompaniesByName,
   getCompanyById,
   createInternshipApplication,
-} from "@/lib/db"
+} from "@/lib/db-prisma"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -36,7 +36,15 @@ export default function InternshipFormPage() {
   const [allCompanies, setAllCompanies] = useState<any[]>([])
   // Step 2
   const [companyId, setCompanyId] = useState<string>("")
-  const company = useMemo(() => (companyId ? getCompanyById(companyId) : undefined), [companyId])
+  const [company, setCompany] = useState<any>(null)
+  
+  useEffect(() => {
+    if (companyId) {
+      getCompanyById(companyId).then(c => setCompany(c))
+    } else {
+      setCompany(null)
+    }
+  }, [companyId])
   // Step 3
   const [from, setFrom] = useState("")
   const [to, setTo] = useState("")
@@ -45,14 +53,17 @@ export default function InternshipFormPage() {
   useEffect(() => {
     const s = getSession()
     if (s?.type === "student") {
-      const p = getStudentProfileByStudentId(s.studentId)
-      setProfile(p)
+      getStudentProfileByStudentId(s.studentId || '').then(p => setProfile(p))
     }
-    const base = searchCompaniesByName("")
+    loadCompanies()
+  }, [])
+
+  async function loadCompanies() {
+    const base = await searchCompaniesByName("")
     const sorted = [...base].sort((a, b) => a.name.localeCompare(b.name))
     setAllCompanies(sorted)
     setCompanies(sorted)
-  }, [])
+  }
 
   // Live filter as user types
   useEffect(() => {
@@ -78,7 +89,7 @@ export default function InternshipFormPage() {
     setCompanyId(id)
   }
 
-  function submit() {
+  async function submit() {
     if (!profile) {
       toast({ title: "Profile missing", description: "Please complete registration and try again.", variant: "destructive" as any })
       return
@@ -96,30 +107,23 @@ export default function InternshipFormPage() {
       toast({ title: "Insufficient duration", description: `Total days must be at least ${required} for this internship type.`, variant: "destructive" as any })
       return
     }
-    createInternshipApplication({
-      studentId: profile.studentId,
-      duration,
-      companyId: company.id,
-      companySnapshot: {
-        name: company.name,
-        sector: company.sector,
-        personName: company.personName,
-        designation: company.designation,
-        mobile: company.mobile,
-        email: company.email,
-        state: company.state,
-        city: company.city,
-        address: company.address,
-      },
-      fromDate: toISOFromInput(from),
-      toDate: toISOFromInput(to),
-      totalDays,
-      status: "pending",
-      approvals: {},
-    })
-    toast({ title: "Application submitted", description: "Your IRF is pending approval." })
-    setFrom("")
-    setTo("")
+    
+    try {
+      await createInternshipApplication({
+        studentId: profile.studentId,
+        company: company.name,
+        duration,
+        startDate: new Date(toISOFromInput(from)),
+        endDate: new Date(toISOFromInput(to)),
+        totalDays,
+        status: "pending",
+      })
+      toast({ title: "Application submitted", description: "Your IRF is pending approval." })
+      setFrom("")
+      setTo("")
+    } catch (error) {
+      toast({ title: "Submission failed", description: "Failed to submit application. Please try again.", variant: "destructive" as any })
+    }
   }
 
   return (

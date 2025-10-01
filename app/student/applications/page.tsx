@@ -1,8 +1,8 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { getSession } from "@/lib/auth"
-import { attachInternshipCertificate, listInternshipsByStudent } from "@/lib/db"
+import { getSession } from "@/lib/auth-new"
+import { attachInternshipCertificate, listInternshipApplicationsByStudent } from "@/lib/db-prisma"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
@@ -15,15 +15,15 @@ export default function MyApplicationsPage() {
 
   useEffect(() => {
     const s = getSession()
-    if (s?.type === "student") {
-      setApps(listInternshipsByStudent(s.studentId))
+    if (s?.type === "student" && s.studentId) {
+      listInternshipApplicationsByStudent(s.studentId).then(setApps)
     }
   }, [])
 
   function refresh() {
     const s = getSession()
-    if (s?.type === "student") {
-      setApps(listInternshipsByStudent(s.studentId))
+    if (s?.type === "student" && s.studentId) {
+      listInternshipApplicationsByStudent(s.studentId).then(setApps)
     }
   }
 
@@ -44,7 +44,7 @@ export default function MyApplicationsPage() {
     const buffer = await file.arrayBuffer()
     const base64 = typeof window !== "undefined" ? btoa(String.fromCharCode(...new Uint8Array(buffer))) : ""
     const url = `data:${file.type};base64,${base64}`
-    attachInternshipCertificate(appId, {
+    await attachInternshipCertificate(appId, {
       fileName: file.name,
       fileSize: file.size,
       fileType: file.type,

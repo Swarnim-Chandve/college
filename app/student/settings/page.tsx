@@ -1,8 +1,9 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { getSession } from "@/lib/auth"
-import { getStuLoginByStudentId, setStuLoginForStudent, getStudentProfileByStudentId } from "@/lib/db"
+import { getSession } from "@/lib/auth-new"
+import { changePassword, getUserByEmail } from "@/lib/auth-new"
+import { getStudentProfileByStudentId } from "@/lib/db-prisma"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -20,14 +21,13 @@ export default function StudentSettingsPage() {
   useEffect(() => {
     const s = getSession()
     if (s?.type === "student") {
-      setStudentId(s.studentId)
-      const prof = getStudentProfileByStudentId(s.studentId)
-      setEmail(prof?.email || "")
+      setStudentId(s.studentId || "")
+      setEmail(s.email)
     }
   }, [])
 
-  function changePassword() {
-    if (!studentId) return
+  async function changePassword() {
+    if (!email) return
     if (!current || !next || !confirm) {
       toast({ title: "Missing fields", description: "Fill all password fields.", variant: "destructive" as any })
       return
@@ -36,16 +36,20 @@ export default function StudentSettingsPage() {
       toast({ title: "Mismatch", description: "New passwords do not match.", variant: "destructive" as any })
       return
     }
-    const rec = getStuLoginByStudentId(studentId)
-    if (!rec || rec.password !== current) {
-      toast({ title: "Invalid password", description: "Current password is incorrect.", variant: "destructive" as any })
-      return
+    
+    try {
+      const result = await changePassword(email, current, next)
+      if (result.success) {
+        setCurrent("")
+        setNext("")
+        setConfirm("")
+        toast({ title: "Password changed", description: "Your password has been updated." })
+      } else {
+        toast({ title: "Error", description: result.error || "Failed to change password.", variant: "destructive" as any })
+      }
+    } catch (error) {
+      toast({ title: "Error", description: "Failed to change password.", variant: "destructive" as any })
     }
-    setStuLoginForStudent(studentId, email, next)
-    setCurrent("")
-    setNext("")
-    setConfirm("")
-    toast({ title: "Password changed", description: "Your password has been updated." })
   }
 
   return (

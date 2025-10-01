@@ -20,10 +20,9 @@ import {
   SidebarRail,
 } from "@/components/ui/sidebar"
 import { Home, Briefcase, LogOut, CalendarCheck, FileCheck2, Settings } from "lucide-react"
-import { logout } from "@/lib/auth"
+import { logout } from "@/lib/auth-new"
 import { useEffect, useState } from "react"
-import { getSession } from "@/lib/auth"
-import { getStudentProfileByStudentId } from "@/lib/db"
+import { getSession } from "@/lib/auth-new"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 
 export function StudentSidebar() {
@@ -33,9 +32,7 @@ export function StudentSidebar() {
   useEffect(() => {
     const s = getSession()
     if (s && s.type === "student") {
-      const prof = getStudentProfileByStudentId(s.studentId)
-      setName(prof?.name ?? "Student")
-      setPicture(prof?.pictureUrl)
+      setName(s.name)
     }
   }, [])
   const menuActive = (href: string) => pathname === href

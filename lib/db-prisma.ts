@@ -74,6 +74,20 @@ export async function listStuProfiles(): Promise<StuProfile[]> {
   return await prisma.stuProfile.findMany()
 }
 
+export async function getStudentProfileByStudentId(studentId: string): Promise<StuProfile | null> {
+  return await prisma.stuProfile.findUnique({
+    where: { studentId }
+  })
+}
+
+export async function upsertStudentProfile(data: Omit<StuProfile, 'id'>): Promise<StuProfile> {
+  return await prisma.stuProfile.upsert({
+    where: { studentId: data.studentId },
+    update: data,
+    create: data
+  })
+}
+
 // Faculty Registration operations
 export async function getFacRegByEmployeeId(employeeId: string): Promise<FacReg | null> {
   return await prisma.facReg.findFirst({
@@ -114,6 +128,12 @@ export async function listFacRoles(): Promise<FacRole[]> {
 export async function getCompanyByName(name: string): Promise<Company | null> {
   return await prisma.company.findUnique({
     where: { name }
+  })
+}
+
+export async function getCompanyById(id: string): Promise<Company | null> {
+  return await prisma.company.findUnique({
+    where: { id }
   })
 }
 

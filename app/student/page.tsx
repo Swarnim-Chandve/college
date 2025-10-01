@@ -1,8 +1,8 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { getSession } from "@/lib/auth"
-import { getStudentProfileByStudentId, listInternshipsByStudent } from "@/lib/db"
+import { getSession } from "@/lib/auth-new"
+import { getStudentProfileByStudentId, listInternshipApplicationsByStudent } from "@/lib/db-prisma"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { fmtDate } from "@/lib/date"
@@ -12,10 +12,9 @@ export default function StudentHomePage() {
   const [apps, setApps] = useState<any[]>([])
   useEffect(() => {
     const s = getSession()
-    if (s && s.type === "student") {
-      const p = getStudentProfileByStudentId(s.studentId)
-      setProfile(p)
-      setApps(listInternshipsByStudent(s.studentId))
+    if (s && s.type === "student" && s.studentId) {
+      getStudentProfileByStudentId(s.studentId).then(setProfile)
+      listInternshipApplicationsByStudent(s.studentId).then(setApps)
     }
   }, [])
   return (
