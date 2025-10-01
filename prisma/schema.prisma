@@ -1,0 +1,118 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model RollList {
+  id      String @id @default(cuid())
+  dept    String?
+  sem     String?
+  sec     String?
+  rno     String?
+  name    String?
+  regno   String?
+  session String?
+  dtype   String?
+
+  @@map("rolllist")
+}
+
+model StuLogin {
+  id        String @id @default(cuid())
+  studentId String @unique
+  name      String?
+  email     String? @unique
+  password  String?
+  date      String?
+  year      String?
+
+  @@map("stulogin")
+}
+
+model StuProfile {
+  id        String @id @default(cuid())
+  studentId String @unique
+  name      String?
+  email     String? @unique
+  branch    String?
+  photo     String?
+  date      String?
+  year      String?
+  mobile    String?
+  semester  Int?
+  section   String?
+  rollno    Int?
+  btype     String?
+
+  @@map("stuprofile")
+}
+
+model FacReg {
+  id         String @id @default(cuid())
+  fid        String @unique
+  name       String?
+  desg       String?
+  dept       String?
+  employeeId String?
+
+  @@map("facreg")
+}
+
+model FacRole {
+  id      String @id @default(cuid())
+  session String?
+  fid     String?
+  name    String?
+  dept    String?
+  email   String?
+  role    String?
+
+  @@map("facrole")
+}
+
+model Company {
+  id          String @id @default(cuid())
+  name        String @unique
+  description String?
+  website     String?
+  industry    String?
+  size        String?
+  location    String?
+
+  @@map("companies")
+}
+
+model InternshipApplication {
+  id          String @id @default(cuid())
+  studentId   String
+  company     String
+  duration    String
+  startDate   DateTime
+  endDate     DateTime
+  totalDays   Int
+  status      String @default("pending") // pending, approved, rejected
+  appliedAt   DateTime @default(now())
+  approvedBy  String?
+  approvedAt  DateTime?
+  rejectedBy  String?
+  rejectedAt  DateTime?
+  
+  // Certificate fields
+  certificateFileName String?
+  certificateFileSize Int?
+  certificateFileType String?
+  certificateUrl      String?
+  certificateUploadedAt DateTime?
+  certificateVerified   Boolean @default(false)
+  certificateVerifiedBy  String?
+  certificateVerifiedAt  DateTime?
+
+  @@map("internship_applications")
+}

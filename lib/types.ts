@@ -1,49 +1,61 @@
 export type AcademicYear = string
 
-export type RollList = {
-  studentId: string
-  degree: string
-  branch: string
-  name: string
-  rollNo: string
-  semester: string
-  section: string
-  academicYear: AcademicYear
-  pictureUrl?: string
+// Prisma-compatible types
+export interface RollList {
+  id?: string
+  dept?: string
+  sem?: string
+  sec?: string
+  rno?: string
+  name?: string
+  regno?: string
+  session?: string
+  dtype?: string
 }
 
-export type StuLogin = {
-  email: string
-  password: string
+export interface StuLogin {
+  id?: string
   studentId: string
+  name?: string
+  email?: string
+  password?: string
+  date?: string
+  year?: string
 }
 
-export type StuProfile = {
+export interface StuProfile {
+  id?: string
   studentId: string
-  email: string
-  mobile: string
-  degree: string
-  branch: string
-  name: string
-  rollNo: string
-  semester: string
-  section: string
-  academicYear: AcademicYear
-  pictureUrl?: string
-  createdAt: string
-  updatedAt: string
+  name?: string
+  email?: string
+  branch?: string
+  photo?: string
+  date?: string
+  year?: string
+  mobile?: string
+  semester?: number
+  section?: string
+  rollno?: number
+  btype?: string
 }
 
-export type FacReg = {
-  email: string
-  password: string
-  name: string
+export interface FacReg {
+  id?: string
+  fid: string
+  name?: string
+  desg?: string
+  dept?: string
   employeeId?: string
 }
 
-export type FacRole = {
-  email: string
-  role: "faculty" | "coordinator" | "admin" | "dean"
+export interface FacRole {
+  id?: string
+  session?: string
+  fid?: string
+  name?: string
+  dept?: string
+  email?: string
+  role?: string
 }
 
 // Legacy-style table types derived from provided SQL
@@ -98,56 +110,42 @@ export type FacRole1Legacy = {
   role: string | null
 }
 
-export type Company = {
-  id: string
+export interface Company {
+  id?: string
   name: string
-  address: string
-  personName: string
-  designation: string
-  email: string
-  mobile: string
-  state: string
-  city: string
-  sector: string
+  description?: string
+  website?: string
+  industry?: string
+  size?: string
+  location?: string
 }
 
 export type InternshipDuration = "2w" | "4w" | "6m"
 
-export type InternshipApplication = {
-  id: string
+export interface InternshipApplication {
+  id?: string
   studentId: string
-  duration: InternshipDuration
-  companyId: string
-  companySnapshot: {
-    name: string
-    sector: string
-    personName: string
-    designation: string
-    mobile: string
-    email: string
-    state: string
-    city: string
-    address: string
-  }
-  fromDate: string // ISO
-  toDate: string // ISO
+  company: string
+  duration: string
+  startDate: Date
+  endDate: Date
   totalDays: number
-  status: "pending" | "approved_faculty" | "approved_coordinator" | "approved_dean" | "rejected"
-  approvals: {
-    faculty?: { by: string; at: string }
-    coordinator?: { by: string; at: string }
-    dean?: { by: string; at: string }
-  }
-  createdAt: string
-  updatedAt: string
-  certificate?: {
-    fileName: string
-    fileSize: number
-    fileType: string
-    url: string // data URL in demo
-    uploadedAt: string
-    verified?: { by: string; at: string }
-  }
+  status: string
+  appliedAt?: Date
+  approvedBy?: string
+  approvedAt?: Date
+  rejectedBy?: string
+  rejectedAt?: Date
+  
+  // Certificate fields
+  certificateFileName?: string
+  certificateFileSize?: number
+  certificateFileType?: string
+  certificateUrl?: string
+  certificateUploadedAt?: Date
+  certificateVerified?: boolean
+  certificateVerifiedBy?: string
+  certificateVerifiedAt?: Date
 }
 
 export type DB = {

@@ -145,7 +145,7 @@ export function upsertStudentProfile(profile: Omit<StuProfile, "createdAt" | "up
 // Student login
 export function getStuLoginByEmail(email: string): StuLogin | undefined {
   const db = getDB()
-  return db.stulogin.find((s) => s.email.toLowerCase() === email.toLowerCase())
+  return db.stulogin.find((s) => s.email?.toLowerCase() === email.toLowerCase())
 }
 export function getStuLoginByStudentId(studentId: string): StuLogin | undefined {
   const db = getDB()

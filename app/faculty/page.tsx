@@ -344,22 +344,71 @@ function AdminPanel() {
   const [rollTSV, setRollTSV] = useState("")
   const [profileTSV, setProfileTSV] = useState("")
   const [loginTSV, setLoginTSV] = useState("")
+  const [isMigrating, setIsMigrating] = useState(false)
+
+  const handleMigration = async () => {
+    setIsMigrating(true)
+    try {
+      const response = await fetch('/api/migrate', { method: 'POST' })
+      const result = await response.json()
+      
+      if (result.success) {
+        toast({ 
+          title: "Migration Complete", 
+          description: "Data successfully migrated to PostgreSQL database!" 
+        })
+      } else {
+        toast({ 
+          title: "Migration Failed", 
+          description: result.error || "Unknown error occurred",
+          variant: "destructive"
+        })
+      }
+    } catch (error) {
+      toast({ 
+        title: "Migration Error", 
+        description: "Failed to migrate data",
+        variant: "destructive"
+      })
+    } finally {
+      setIsMigrating(false)
+    }
+  }
+
   return (
     <Card>
       <CardHeader>
         <CardTitle>Admin Tools</CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
-        <p className="text-sm text-muted-foreground">Manage demo data.</p>
-        <Button
-          variant="destructive"
-          onClick={() => {
-            resetDB()
-            toast({ title: "Database reset", description: "Seed data restored." })
-          }}
-        >
-          Reset Database
-        </Button>
+        <p className="text-sm text-muted-foreground">Manage demo data and database migration.</p>
+        
+        <div className="space-y-2">
+          <div className="text-sm font-medium">Database Migration</div>
+          <p className="text-xs text-muted-foreground">
+            Migrate from localStorage to PostgreSQL database. This will preserve all existing data.
+          </p>
+          <Button
+            onClick={handleMigration}
+            disabled={isMigrating}
+            className="bg-green-600 hover:bg-green-700"
+          >
+            {isMigrating ? "Migrating..." : "Migrate to PostgreSQL"}
+          </Button>
+        </div>
+
+        <div className="border-t pt-4">
+          <div className="text-sm font-medium mb-2">Legacy Tools (localStorage)</div>
+          <Button
+            variant="destructive"
+            onClick={() => {
+              resetDB()
+              toast({ title: "Database reset", description: "Seed data restored." })
+            }}
+          >
+            Reset Database
+          </Button>
+        </div>
 
         <div className="space-y-2">
           <div className="text-sm font-medium">Import Roll List (TSV)</div>
