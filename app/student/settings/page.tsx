@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { changePassword } from "@/lib/server-actions"
+import { changePassword as changePasswordAction } from "@/lib/auth-new"
 import { getSession, fetchSession } from "@/lib/auth-new"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -44,7 +44,7 @@ export default function StudentSettingsPage() {
     }
     
     try {
-      const result = await changePassword(email, current, next)
+      const result = await changePasswordAction(email, current, next)
       if (result.success) {
         setCurrent("")
         setNext("")
