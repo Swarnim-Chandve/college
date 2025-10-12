@@ -20,7 +20,7 @@ import {
   SidebarRail,
 } from "@/components/ui/sidebar"
 import { Home, Briefcase, LogOut, CalendarCheck, FileCheck2, Settings } from "lucide-react"
-import { logout } from "@/lib/auth-new"
+import { logout, fetchSession } from "@/lib/auth-new"
 import { useEffect, useState } from "react"
 import { getSession } from "@/lib/auth-new"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -33,7 +33,11 @@ export function StudentSidebar() {
     const s = getSession()
     if (s && s.type === "student") {
       setName(s.name)
+      return
     }
+    fetchSession().then((ss) => {
+      if (ss && ss.type === "student") setName(ss.name)
+    })
   }, [])
   const menuActive = (href: string) => pathname === href
 

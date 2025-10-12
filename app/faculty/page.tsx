@@ -7,11 +7,12 @@ import { getSession } from "@/lib/auth-new"
 import { 
   listStuProfiles, 
   listInternshipApplications, 
-  updateInternshipApplicationStatus, 
+  updateInternshipApplicationStatus,
+  approveInternshipApplication,
+  rejectInternshipApplication,
   verifyInternshipCertificate,
   seedDatabase
-} from "@/lib/db-prisma"
-import { resetDB, importRollListFromTSV, importStuLoginFromTSV, importStuProfileFromTSV } from "@/lib/db"
+} from "@/lib/server-actions"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -90,15 +91,20 @@ function StudentsTable() {
 }
 
 function ApprovalsTable() {
-  const session = getSession()
+  const [session, setSession] = useState<any>(null)
   const { toast } = useToast()
-  const role = session?.type === "faculty" ? session.role : "faculty"
+  const role = session?.type === "admin" ? "admin" : session?.type === "faculty" ? "faculty" : "coordinator"
   const [rows, setRows] = useState<any[]>([])
   const [search, setSearch] = useState("")
   const [statusTab, setStatusTab] = useState<"all" | "pending" | "approved" | "rejected">("all")
-  const [filters, setFilters] = useState({ duration: "", session: "", semester: "", branch: "", ugpg: "" })
+  const [filters, setFilters] = useState({ duration: "", session: "", semester: "", branch: "", degree: "" })
 
   useEffect(() => {
+    async function loadSession() {
+      const s = await fetchSession()
+      setSession(s)
+    }
+    loadSession()
     loadApplications()
   }, [])
 
@@ -114,16 +120,26 @@ function ApprovalsTable() {
   function canApprove(status: string) {
     if (role === "faculty") return status === "pending"
     if (role === "coordinator") return status === "approved_faculty" || status === "pending"
-    if (role === "dean")
-      return status === "approved_coordinator" || status === "approved_faculty" || status === "pending"
-    if (role === "admin") return true
+    if (role === "dean") return status === "approved_coordinator" || status === "approved_faculty" || status === "pending"
+    if (role === "admin") return status !== "approved" && status !== "rejected"
     return false
   }
 
+  function getStatusDisplay(status: string) {
+    switch (status) {
+      case "pending": return "Pending"
+      case "approved_faculty": return "Approved by Faculty"
+      case "approved_coordinator": return "Approved by Coordinator"
+      case "approved": return "Fully Approved"
+      case "rejected": return "Rejected"
+      default: return status
+    }
+  }
+
   async function approve(id: string) {
-    if (!session || session.type !== "faculty") return
+    if (!session || !session.email) return
     try {
-      await updateInternshipApplicationStatus(id, "approved", session.email)
+      await approveInternshipApplication(id, session.email, role as any)
       toast({ title: "Approved", description: "Application approved successfully." })
       refresh()
     } catch (error) {
@@ -132,9 +148,9 @@ function ApprovalsTable() {
   }
 
   async function reject(id: string) {
-    if (!session || session.type !== "faculty") return
+    if (!session || !session.email) return
     try {
-      await updateInternshipApplicationStatus(id, "rejected", undefined, session.email)
+      await rejectInternshipApplication(id, session.email)
       toast({ title: "Rejected", description: "Application rejected." })
       refresh()
     } catch (error) {
@@ -143,7 +159,7 @@ function ApprovalsTable() {
   }
 
   async function markVerified(id: string) {
-    if (!session || session.type !== "faculty") return
+    if (!session || !session.email) return
     if (role !== "coordinator" && role !== "admin" && role !== "dean") {
       toast({ title: "Not allowed", description: "Only coordinator/dean/admin can verify certificates.", variant: "destructive" as any })
       return
@@ -159,12 +175,16 @@ function ApprovalsTable() {
 
   const filtered = rows.filter((r) => {
     if (statusTab === "pending" && r.status !== "pending") return false
-    if (statusTab === "approved" && r.status !== "approved") return false
+    if (statusTab === "approved" && !r.status.includes("approved")) return false
     if (statusTab === "rejected" && r.status !== "rejected") return false
     if (filters.duration && r.duration !== filters.duration) return false
+    if (filters.session && r.profile?.year !== filters.session) return false
+    if (filters.semester && r.profile?.semester?.toString() !== filters.semester) return false
+    if (filters.branch && r.profile?.branch !== filters.branch) return false
+    if (filters.degree && r.profile?.btype !== filters.degree) return false
     if (search) {
       const s = search.toLowerCase()
-      const hay = [r.studentId, r.company].join(" ").toLowerCase()
+      const hay = [r.studentId, r.company, r.profile?.name || ''].join(" ").toLowerCase()
       if (!hay.includes(s)) return false
     }
     return true
@@ -218,41 +238,54 @@ function ApprovalsTable() {
           </div>
           <div className="flex items-center gap-2">
             <span className="text-xs text-muted-foreground">Session</span>
-            <input
-              className="h-8 w-full rounded border bg-background px-2 text-sm"
-              placeholder="2024-25"
+            <select
+              className="h-8 rounded border bg-background px-2 text-sm"
               value={filters.session}
               onChange={(e) => setFilters((f) => ({ ...f, session: e.target.value }))}
-            />
+            >
+              <option value="">All Sessions</option>
+              {Array.from(new Set(rows.map(r => r.profile?.year).filter(Boolean))).map(year => (
+                <option key={year} value={year}>{year}</option>
+              ))}
+            </select>
           </div>
           <div className="flex items-center gap-2">
             <span className="text-xs text-muted-foreground">Semester</span>
-            <input
-              className="h-8 w-full rounded border bg-background px-2 text-sm"
-              placeholder="8"
+            <select
+              className="h-8 rounded border bg-background px-2 text-sm"
               value={filters.semester}
               onChange={(e) => setFilters((f) => ({ ...f, semester: e.target.value }))}
-            />
+            >
+              <option value="">All Semesters</option>
+              {Array.from(new Set(rows.map(r => r.profile?.semester).filter(Boolean))).sort().map(sem => (
+                <option key={sem} value={sem}>{sem}</option>
+              ))}
+            </select>
           </div>
           <div className="flex items-center gap-2">
             <span className="text-xs text-muted-foreground">Branch</span>
-            <input
-              className="h-8 w-full rounded border bg-background px-2 text-sm"
-              placeholder="CSE"
+            <select
+              className="h-8 rounded border bg-background px-2 text-sm"
               value={filters.branch}
               onChange={(e) => setFilters((f) => ({ ...f, branch: e.target.value }))}
-            />
+            >
+              <option value="">All Branches</option>
+              {Array.from(new Set(rows.map(r => r.profile?.branch).filter(Boolean))).map(branch => (
+                <option key={branch} value={branch}>{branch}</option>
+              ))}
+            </select>
           </div>
           <div className="flex items-center gap-2">
             <span className="text-xs text-muted-foreground">UG/PG</span>
             <select
               className="h-8 rounded border bg-background px-2 text-sm"
-              value={filters.ugpg}
-              onChange={(e) => setFilters((f) => ({ ...f, ugpg: e.target.value }))}
+              value={filters.degree}
+              onChange={(e) => setFilters((f) => ({ ...f, degree: e.target.value }))}
             >
-              <option value="">All</option>
-              <option value="UG">UG</option>
-              <option value="PG">PG</option>
+              <option value="">All Degrees</option>
+              {Array.from(new Set(rows.map(r => r.profile?.btype).filter(Boolean))).map(degree => (
+                <option key={degree} value={degree}>{degree}</option>
+              ))}
             </select>
           </div>
           <div className="flex items-center gap-2">
@@ -289,57 +322,52 @@ function ApprovalsTable() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filtered.map(({ r, p }) => (
+              {filtered.map((r) => (
                 <TableRow key={r.id}>
                   <TableCell>{r.studentId}</TableCell>
-                  <TableCell>{p?.name}</TableCell>
-                  <TableCell>{p?.rollNo}</TableCell>
-                  <TableCell>{p?.mobile}</TableCell>
-                  <TableCell>{p?.branch}</TableCell>
-                  <TableCell>
-                    {p?.semester}/{p?.section}
-                  </TableCell>
-                  <TableCell>{p?.degree}</TableCell>
-                  <TableCell>{p?.email}</TableCell>
-                  <TableCell>{r.companySnapshot.name}</TableCell>
+                  <TableCell>{r.profile?.name || '-'}</TableCell>
+                  <TableCell>{r.profile?.rollno || '-'}</TableCell>
+                  <TableCell>{r.profile?.mobile || '-'}</TableCell>
+                  <TableCell>{r.profile?.branch || '-'}</TableCell>
+                  <TableCell>{r.profile?.semester ? `${r.profile.semester}/${r.profile.section}` : '-'}</TableCell>
+                  <TableCell>{r.profile?.btype || '-'}</TableCell>
+                  <TableCell>{r.profile?.email || '-'}</TableCell>
+                  <TableCell>{r.company}</TableCell>
                   <TableCell>
                     {r.duration === "2w" ? "2 Weeks" : r.duration === "4w" ? "4 Weeks" : "6 Months"}
                   </TableCell>
-                  <TableCell>{fmtDate(r.fromDate)}</TableCell>
-                  <TableCell>{fmtDate(r.toDate)}</TableCell>
+                  <TableCell>{fmtDate(r.startDate)}</TableCell>
+                  <TableCell>{fmtDate(r.endDate)}</TableCell>
                   <TableCell>{r.totalDays}</TableCell>
                   <TableCell>
-                    {r.certificate ? (
-                      <a className="underline" href={r.certificate.url} target="_blank" rel="noreferrer">
-                        PDF
+                    {r.certificateFileName ? (
+                      <a className="underline" href={r.certificateUrl} target="_blank" rel="noreferrer">
+                        {r.certificateFileName}
                       </a>
                     ) : (
                       <span className="text-xs text-muted-foreground">Not uploaded</span>
                     )}
                   </TableCell>
                   <TableCell className="capitalize">
-                    {r.status.replaceAll("_", " ")}
-                    {r.certificate?.verified && (
-                      <div className="text-xs text-green-600">Verified by {r.certificate.verified.by}</div>
+                    {getStatusDisplay(r.status)}
+                    {r.certificateVerified && (
+                      <div className="text-xs text-green-600">Verified by {r.certificateVerifiedBy}</div>
                     )}
                   </TableCell>
                   <TableCell>
                     <div className="text-xs text-muted-foreground">
-                      {r.approvals.faculty && <div>Faculty: {r.approvals.faculty.by} ({fmtDate(r.approvals.faculty.at)})</div>}
-                      {r.approvals.coordinator && (
-                        <div>Coordinator: {r.approvals.coordinator.by} ({fmtDate(r.approvals.coordinator.at)})</div>
-                      )}
-                      {r.approvals.dean && <div>Dean: {r.approvals.dean.by} ({fmtDate(r.approvals.dean.at)})</div>}
+                      {r.approvedBy && <div>Approved by: {r.approvedBy} ({fmtDate(r.approvedAt)})</div>}
+                      {r.rejectedBy && <div>Rejected by: {r.rejectedBy} ({fmtDate(r.rejectedAt)})</div>}
                     </div>
                   </TableCell>
                   <TableCell className="space-x-2">
                     <Button size="sm" disabled={!canApprove(r.status)} onClick={() => approve(r.id)}>
                       Approve
                     </Button>
-                    <Button size="sm" variant="outline" onClick={() => reject(r.id)}>
+                    <Button size="sm" variant="outline" disabled={r.status === "rejected"} onClick={() => reject(r.id)}>
                       Reject
                     </Button>
-                    <Button size="sm" variant="secondary" disabled={!r.certificate || !!r.certificate.verified} onClick={() => markVerified(r.id)}>
+                    <Button size="sm" variant="secondary" disabled={!r.certificateFileName || r.certificateVerified} onClick={() => markVerified(r.id)}>
                       Verify Certificate
                     </Button>
                   </TableCell>
@@ -408,18 +436,6 @@ function AdminPanel() {
           </Button>
         </div>
 
-        <div className="border-t pt-4">
-          <div className="text-sm font-medium mb-2">Legacy Tools (localStorage)</div>
-          <Button
-            variant="destructive"
-            onClick={() => {
-              resetDB()
-              toast({ title: "Database reset", description: "Seed data restored." })
-            }}
-          >
-            Reset Database
-          </Button>
-        </div>
 
         <div className="space-y-2">
           <div className="text-sm font-medium">Import Roll List (TSV)</div>
@@ -427,9 +443,7 @@ function AdminPanel() {
           <Button
             size="sm"
             onClick={() => {
-              importRollListFromTSV(rollTSV)
-              toast({ title: "Imported", description: "Roll list imported." })
-              setRollTSV("")
+              toast({ title: "Import disabled", description: "TSV import is deprecated. Use database seeding instead." })
             }}
           >
             Import Roll List
@@ -442,9 +456,7 @@ function AdminPanel() {
           <Button
             size="sm"
             onClick={() => {
-              importStuProfileFromTSV(profileTSV)
-              toast({ title: "Imported", description: "Student profiles imported." })
-              setProfileTSV("")
+              toast({ title: "Import disabled", description: "TSV import is deprecated. Use database seeding instead." })
             }}
           >
             Import Profiles
@@ -457,9 +469,7 @@ function AdminPanel() {
           <Button
             size="sm"
             onClick={() => {
-              importStuLoginFromTSV(loginTSV)
-              toast({ title: "Imported", description: "Student logins imported." })
-              setLoginTSV("")
+              toast({ title: "Import disabled", description: "TSV import is deprecated. Use database seeding instead." })
             }}
           >
             Import Logins
@@ -474,7 +484,7 @@ export default function FacultyPage() {
   const sp = useSearchParams()
   const tab = sp.get("tab") ?? "home"
   const s = getSession()
-  const role = s?.type === "faculty" ? s.role : "faculty"
+  const role = s?.type === "admin" ? "admin" : s?.type === "faculty" ? "coordinator" : "dean"
 
   return (
     <div className="space-y-6">

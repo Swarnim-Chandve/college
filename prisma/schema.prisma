@@ -5,6 +5,10 @@ generator client {
   provider = "prisma-client-js"
 }
 
+generator seed {
+  provider = "tsx prisma/seed.ts"
+}
+
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
@@ -85,6 +89,16 @@ model Company {
   industry    String?
   size        String?
   location    String?
+  
+  // Additional fields for internship form
+  address     String?
+  personName  String?
+  designation String?
+  email       String?
+  mobile      String?
+  state       String?
+  city        String?
+  sector      String?
 
   @@map("companies")
 }
@@ -129,4 +143,24 @@ model InternshipApplication {
   certificateVerifiedAt  DateTime?
 
   @@map("internship_applications")
+}
+
+model RepositoryFile {
+  id          String @id @default(cuid())
+  title       String
+  description String?
+  fileName    String
+  fileSize    Int
+  fileType    String
+  fileUrl     String
+  department  String
+  session     String
+  term        String
+  semester    String
+  subject     String
+  uploadedBy  String
+  uploadedAt  DateTime @default(now())
+  isActive    Boolean @default(true)
+
+  @@map("repository_files")
 }

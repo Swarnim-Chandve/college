@@ -10,8 +10,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
-import { loginUser, forgotPassword, getUserByEmail } from "@/lib/auth-new"
-import { getFacultyByEmail } from "@/lib/db"
+import { loginUser, forgotPassword } from "@/lib/server-actions"
+import { setSession } from "@/lib/auth-new"
 import { useToast } from "@/hooks/use-toast"
 
 export default function LoginPage() {
@@ -25,12 +25,24 @@ export default function LoginPage() {
   const [loadingForgot, setLoadingForgot] = useState(false)
 
   async function onStudentLogin() {
-    const session = await loginUser(studentEmail.trim(), studentPassword.trim())
-    if (!session) {
-      toast({ title: "Login failed", description: "Invalid student credentials.", variant: "destructive" as any })
+    if (!studentEmail.trim()) {
+      toast({ title: "Email required", description: "Please enter your email address.", variant: "destructive" as any })
+      return
+    }
+    if (!studentPassword.trim()) {
+      toast({ title: "Password required", description: "Please enter your password.", variant: "destructive" as any })
       return
     }
     
+    const session = await loginUser(studentEmail.trim(), studentPassword.trim())
+    if (!session) {
+      toast({ title: "Login failed", description: "Invalid email or password. Please check your credentials.", variant: "destructive" as any })
+      return
+    }
+    
+    // Persist session before redirect
+    await setSession(session)
+
     if (session.type === 'student') {
       router.push("/student")
     } else {
@@ -39,11 +51,29 @@ export default function LoginPage() {
   }
 
   async function onStudentForgot() {
+    if (!studentEmail.trim()) {
+      toast({ title: "Email required", description: "Please enter your email address to reset password.", variant: "destructive" as any })
+      return
+    }
+    
     setLoadingForgot(true)
     try {
       const result = await forgotPassword(studentEmail.trim())
       if (result.success) {
-        toast({ title: "Password Sent", description: "Check your email for the new password." })
+        const pwd = result.password
+        const msg = pwd ? `New password: ${pwd}` : "Check your email for the new password."
+        toast({ 
+          title: "Password Reset", 
+          description: msg,
+          action: pwd ? (
+            <Button
+              size="sm"
+              onClick={() => navigator.clipboard.writeText(pwd)}
+            >
+              Copy
+            </Button>
+          ) : undefined
+        })
       } else {
         toast({ title: "Error", description: result.error || "Failed to reset password.", variant: "destructive" as any })
       }
@@ -66,6 +96,9 @@ export default function LoginPage() {
       return
     }
     
+    // Persist session before redirect
+    await setSession(session)
+
     router.push("/faculty")
   }
 
@@ -79,7 +112,20 @@ export default function LoginPage() {
     try {
       const result = await forgotPassword(facEmail.trim())
       if (result.success) {
-        toast({ title: "Password Sent", description: "Check your email for the new password." })
+        const pwd = result.password
+        const msg = pwd ? `New password: ${pwd}` : "Check your email for the new password."
+        toast({ 
+          title: "Password Reset", 
+          description: msg,
+          action: pwd ? (
+            <Button
+              size="sm"
+              onClick={() => navigator.clipboard.writeText(pwd)}
+            >
+              Copy
+            </Button>
+          ) : undefined
+        })
       } else {
         toast({ title: "Error", description: result.error || "Failed to reset password.", variant: "destructive" as any })
       }

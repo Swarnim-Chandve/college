@@ -1,8 +1,8 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { getSession } from "@/lib/auth-new"
-import { getStudentProfileByStudentId, listInternshipApplicationsByStudent } from "@/lib/db-prisma"
+import { getSession, fetchSession } from "@/lib/auth-new"
+import { getStudentProfileByStudentId, listInternshipApplicationsByStudent } from "@/lib/server-actions"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { fmtDate } from "@/lib/date"
@@ -10,12 +10,23 @@ import { fmtDate } from "@/lib/date"
 export default function StudentHomePage() {
   const [profile, setProfile] = useState<any>(null)
   const [apps, setApps] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
   useEffect(() => {
-    const s = getSession()
-    if (s && s.type === "student" && s.studentId) {
-      getStudentProfileByStudentId(s.studentId).then(setProfile)
-      listInternshipApplicationsByStudent(s.studentId).then(setApps)
+    async function loadData() {
+      const s = await fetchSession()
+      if (s && s.type === "student" && s.studentId) {
+        console.log('Loading profile for student:', s.studentId)
+        getStudentProfileByStudentId(s.studentId).then((profile) => {
+          console.log('Profile loaded:', profile)
+          setProfile(profile)
+          setLoading(false)
+        })
+        listInternshipApplicationsByStudent(s.studentId).then(setApps)
+      } else {
+        setLoading(false)
+      }
     }
+    loadData()
   }, [])
   return (
     <div className="space-y-6">
@@ -24,17 +35,23 @@ export default function StudentHomePage() {
           <CardTitle>Welcome {profile?.name ? profile.name : "Student"}</CardTitle>
         </CardHeader>
         <CardContent className="grid gap-4 md:grid-cols-3">
-          <div>
-            <div className="text-xs text-muted-foreground">Student ID</div>
-            <div className="font-medium">{profile?.studentId}</div>
-          </div>
+          {loading ? (
+            <div className="col-span-3 text-center text-sm text-muted-foreground">
+              Loading profile...
+            </div>
+          ) : (
+            <>
+              <div>
+                <div className="text-xs text-muted-foreground">Student ID</div>
+                <div className="font-medium">{profile?.studentId}</div>
+              </div>
           <div>
             <div className="text-xs text-muted-foreground">Academic Year</div>
-            <div className="font-medium">{profile?.academicYear}</div>
+            <div className="font-medium">{profile?.year}</div>
           </div>
           <div>
             <div className="text-xs text-muted-foreground">Roll No</div>
-            <div className="font-medium">{profile?.rollNo}</div>
+            <div className="font-medium">{profile?.rollno}</div>
           </div>
           <div>
             <div className="text-xs text-muted-foreground">Semester</div>
@@ -50,11 +67,13 @@ export default function StudentHomePage() {
           </div>
           <div>
             <div className="text-xs text-muted-foreground">Degree</div>
-            <div className="font-medium">{profile?.degree}</div>
+            <div className="font-medium">{profile?.btype}</div>
           </div>
           <div className="md:col-span-3 text-sm text-muted-foreground">
             Explore internships via the menu. Your details are auto-filled in applications.
           </div>
+            </>
+          )}
         </CardContent>
       </Card>
 

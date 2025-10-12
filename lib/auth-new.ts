@@ -284,49 +284,43 @@ export async function changePassword(email: string, currentPassword: string, new
 // Session management
 export function getSession(): Session | null {
   if (typeof window === 'undefined') return null
-  
-  const token = localStorage.getItem('auth_token')
-  if (!token) return null
-  
-  const user = verifyToken(token)
-  if (!user) {
-    localStorage.removeItem('auth_token')
+  // Return cached session if available, otherwise return null
+  // Components should use fetchSession() for fresh data
+  try {
+    const raw = (window as any).__ghrce_cached_session as string | undefined
+    if (raw) return JSON.parse(raw)
+  } catch {}
+  return null
+}
+
+export async function fetchSession(): Promise<Session | null> {
+  try {
+    const res = await fetch('/api/session', { cache: 'no-store' })
+    const data = await res.json().catch(() => ({}))
+    const session = (data && data.session) || null
+    ;(window as any).__ghrce_cached_session = session ? JSON.stringify(session) : undefined
+    return session
+  } catch {
     return null
   }
-  
-  const sessionType = user.role === 'student' ? 'student' : 
-                     user.role === 'admin' ? 'admin' : 'faculty'
-  
-  return {
-    type: sessionType,
-    email: user.email,
-    name: user.name || '',
-    userId: user.id,
-    studentId: user.studentId,
-    employeeId: user.employeeId
-  }
 }
 
-export function setSession(session: Session | null): void {
-  if (typeof window === 'undefined') return
-  
-  if (session) {
-    const user: AuthUser = {
-      id: session.userId,
-      email: session.email,
-      name: session.name,
-      role: session.type === 'student' ? 'student' : 
-            session.type === 'admin' ? 'admin' : 'faculty',
-      studentId: session.studentId,
-      employeeId: session.employeeId
+export async function setSession(session: Session | null): Promise<void> {
+  try {
+    if (session) {
+      await fetch('/api/session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ session })
+      })
+      ;(window as any).__ghrce_cached_session = JSON.stringify(session)
+    } else {
+      await fetch('/api/session', { method: 'DELETE' })
+      ;(window as any).__ghrce_cached_session = undefined
     }
-    const token = generateToken(user)
-    localStorage.setItem('auth_token', token)
-  } else {
-    localStorage.removeItem('auth_token')
-  }
+  } catch {}
 }
 
-export function logout(): void {
-  setSession(null)
+export async function logout(): Promise<void> {
+  await setSession(null)
 }

@@ -8,7 +8,7 @@ import {
   searchCompaniesByName,
   getCompanyById,
   createInternshipApplication,
-} from "@/lib/db-prisma"
+} from "@/lib/server-actions"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -29,6 +29,8 @@ export default function InternshipFormPage() {
   const { toast } = useToast()
   const duration = params.duration as "2w" | "4w" | "6m"
   const [profile, setProfile] = useState<any>(null)
+  const [loading, setLoading] = useState(false)
+  const [searching, setSearching] = useState(false)
 
   // Step 1
   const [query, setQuery] = useState("")
@@ -108,6 +110,7 @@ export default function InternshipFormPage() {
       return
     }
     
+    setLoading(true)
     try {
       await createInternshipApplication({
         studentId: profile.studentId,
@@ -123,6 +126,8 @@ export default function InternshipFormPage() {
       setTo("")
     } catch (error) {
       toast({ title: "Submission failed", description: "Failed to submit application. Please try again.", variant: "destructive" as any })
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -294,7 +299,9 @@ export default function InternshipFormPage() {
           </div>
 
           <div className="flex justify-end">
-            <Button onClick={submit}>Submit Application</Button>
+            <Button onClick={submit} disabled={loading}>
+              {loading ? "Submitting..." : "Submit Application"}
+            </Button>
           </div>
         </CardContent>
       </Card>

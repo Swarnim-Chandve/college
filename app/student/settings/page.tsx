@@ -1,9 +1,8 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { getSession } from "@/lib/auth-new"
-import { changePassword, getUserByEmail } from "@/lib/auth-new"
-import { getStudentProfileByStudentId } from "@/lib/db-prisma"
+import { changePassword } from "@/lib/server-actions"
+import { getSession, fetchSession } from "@/lib/auth-new"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -23,7 +22,14 @@ export default function StudentSettingsPage() {
     if (s?.type === "student") {
       setStudentId(s.studentId || "")
       setEmail(s.email)
+      return
     }
+    fetchSession().then((ss) => {
+      if (ss?.type === "student") {
+        setStudentId(ss.studentId || "")
+        setEmail(ss.email)
+      }
+    })
   }, [])
 
   async function changePassword() {

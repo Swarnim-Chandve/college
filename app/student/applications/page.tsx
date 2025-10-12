@@ -1,8 +1,8 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { getSession } from "@/lib/auth-new"
-import { attachInternshipCertificate, listInternshipApplicationsByStudent } from "@/lib/db-prisma"
+import { getSession, fetchSession } from "@/lib/auth-new"
+import { attachInternshipCertificate, listInternshipApplicationsByStudent } from "@/lib/server-actions"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
@@ -12,19 +12,40 @@ import { fmtDate } from "@/lib/date"
 export default function MyApplicationsPage() {
   const { toast } = useToast()
   const [apps, setApps] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     const s = getSession()
     if (s?.type === "student" && s.studentId) {
-      listInternshipApplicationsByStudent(s.studentId).then(setApps)
+      listInternshipApplicationsByStudent(s.studentId).then((data) => {
+        setApps(data)
+        setLoading(false)
+      })
+      return
     }
+    fetchSession().then((ss) => {
+      if (ss?.type === "student" && ss.studentId) {
+        listInternshipApplicationsByStudent(ss.studentId).then((data) => {
+          setApps(data)
+          setLoading(false)
+        })
+      } else {
+        setLoading(false)
+      }
+    })
   }, [])
 
   function refresh() {
     const s = getSession()
     if (s?.type === "student" && s.studentId) {
       listInternshipApplicationsByStudent(s.studentId).then(setApps)
+      return
     }
+    fetchSession().then((ss) => {
+      if (ss?.type === "student" && ss.studentId) {
+        listInternshipApplicationsByStudent(ss.studentId).then(setApps)
+      }
+    })
   }
 
   async function onUpload(e: React.ChangeEvent<HTMLInputElement>, appId: string) {
@@ -75,28 +96,34 @@ export default function MyApplicationsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {apps.length === 0 && (
+                {loading ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center text-sm text-muted-foreground">
+                      Loading applications...
+                    </TableCell>
+                  </TableRow>
+                ) : apps.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={6} className="text-center text-sm text-muted-foreground">
                       No applications yet.
                     </TableCell>
                   </TableRow>
-                )}
+                ) : null}
                 {apps.map((a) => (
                   <TableRow key={a.id}>
-                    <TableCell>{a.companySnapshot.name}</TableCell>
+                    <TableCell>{a.company}</TableCell>
                     <TableCell>{a.duration === "2w" ? "2 Weeks" : a.duration === "4w" ? "4 Weeks" : "6 Months"}</TableCell>
-                    <TableCell>{fmtDate(a.fromDate)}</TableCell>
-                    <TableCell>{fmtDate(a.toDate)}</TableCell>
+                    <TableCell>{fmtDate(a.startDate)}</TableCell>
+                    <TableCell>{fmtDate(a.endDate)}</TableCell>
                     <TableCell className="capitalize">{a.status.replaceAll("_", " ")}</TableCell>
                     <TableCell>
-                      {a.certificate ? (
+                      {a.certificateFileName ? (
                         <div className="flex items-center gap-2">
-                          <a className="underline" href={a.certificate.url} target="_blank" rel="noreferrer">
-                            {a.certificate.fileName}
+                          <a className="underline" href={a.certificateUrl} target="_blank" rel="noreferrer">
+                            {a.certificateFileName}
                           </a>
-                          <span className="text-xs text-muted-foreground">uploaded {fmtDate(a.certificate.uploadedAt)}</span>
-                          {a.certificate.verified ? (
+                          <span className="text-xs text-muted-foreground">uploaded {fmtDate(a.certificateUploadedAt)}</span>
+                          {a.certificateVerified ? (
                             <span className="rounded bg-green-600 px-2 py-0.5 text-xs text-white">Verified</span>
                           ) : (
                             <span className="rounded bg-amber-500/90 px-2 py-0.5 text-xs text-white">Pending verification</span>

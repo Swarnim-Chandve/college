@@ -17,7 +17,7 @@ import {
   SidebarRail,
 } from "@/components/ui/sidebar"
 import { Home, Users, CheckSquare, Wrench, LogOut, Shield } from "lucide-react"
-import { logout, getSession } from "@/lib/auth"
+import { logout, getSession, fetchSession } from "@/lib/auth-new"
 import { useEffect, useState } from "react"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 
@@ -27,10 +27,17 @@ export function FacultySidebar() {
   const [role, setRole] = useState("faculty")
   useEffect(() => {
     const s = getSession()
-    if (s?.type === "faculty") {
-      setName(s.email.split("@")[0])
+    if (s?.type === "faculty" || s?.type === "admin") {
+      setName((s.name || s.email).split("@")[0])
       setRole(s.role)
+      return
     }
+    fetchSession().then((ss) => {
+      if (ss && (ss.type === "faculty" || ss.type === "admin")) {
+        setName((ss.name || ss.email).split("@")[0])
+        setRole(ss.role)
+      }
+    })
   }, [])
   const isActive = (href: string) => pathname === href
 

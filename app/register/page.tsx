@@ -9,12 +9,7 @@ import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { useToast } from "@/hooks/use-toast"
-import {
-  findRollByStudentId,
-  getStudentProfileByStudentId,
-  upsertStudentProfile,
-} from "@/lib/db"
-import { registerStudent, getUserByStudentId } from "@/lib/auth-new"
+import { registerStudent, getUserByStudentId, findRollByStudentId as findRollByStudentIdServer, upsertStudentProfile } from "@/lib/server-actions"
 
 export default function RegistrationPage() {
   const { toast } = useToast()
@@ -38,40 +33,46 @@ export default function RegistrationPage() {
     setAcademicYear("2024-25")
   }, [])
 
-  function fetchDetails() {
+  async function fetchDetails() {
     if (!studentId.trim()) {
       toast({ title: "Student ID required", description: "Enter Student ID number.", variant: "destructive" as any })
       return
     }
-    const roll = findRollByStudentId(studentId.trim())
-    if (!roll) {
-      toast({ title: "Not found", description: "No record found in roll list. Please verify Student ID.", variant: "destructive" as any })
-      return
-    }
-    // Check if user already exists in new auth system
-    const existingUser = await getUserByStudentId(roll.studentId)
-    if (existingUser) {
-      toast({ description: "You are already registered.", title: "Registration Exists", variant: "destructive" as any })
+    
+    try {
+      const roll = await findRollByStudentIdServer(studentId.trim())
+      if (!roll) {
+        toast({ title: "Not found", description: "No record found in roll list. Please verify Student ID.", variant: "destructive" as any })
+        return
+      }
+      
+      // Check if user already exists in new auth system
+      const existingUser = await getUserByStudentId(roll.regno || '')
+      if (existingUser) {
+        toast({ description: "You are already registered.", title: "Registration Exists", variant: "destructive" as any })
+        setFetched(true)
+        setDegree(roll.dtype || '')
+        setBranch(roll.dept || '')
+        setName(roll.name || '')
+        setRollNo(roll.rno || '')
+        setSemester(roll.sem || '')
+        setSection(roll.sec || '')
+        setAcademicYear(roll.session || '2024-25')
+        setEmail(existingUser.email || '')
+        return
+      }
+      
+      setDegree(roll.dtype || '')
+      setBranch(roll.dept || '')
+      setName(roll.name || '')
+      setRollNo(roll.rno || '')
+      setSemester(roll.sem || '')
+      setSection(roll.sec || '')
+      setAcademicYear(roll.session || '2024-25')
       setFetched(true)
-      // We'll need to get profile data from the roll list since we don't have it in the new system yet
-      setDegree(roll.degree)
-      setBranch(roll.branch)
-      setName(roll.name)
-      setRollNo(roll.rollNo)
-      setSemester(roll.semester)
-      setSection(roll.section)
-      setAcademicYear(roll.academicYear)
-      setEmail(existingUser.email)
-      return
+    } catch (error) {
+      toast({ title: "Error", description: "Failed to fetch details. Please try again.", variant: "destructive" as any })
     }
-    setDegree(roll.degree)
-    setBranch(roll.branch)
-    setName(roll.name)
-    setRollNo(roll.rollNo)
-    setSemester(roll.semester)
-    setSection(roll.section)
-    setAcademicYear(roll.academicYear)
-    setFetched(true)
   }
 
   async function onRegister() {
@@ -99,23 +100,31 @@ export default function RegistrationPage() {
       
       if (result.success) {
         // Also create profile in legacy system for now (we'll migrate this later)
-        upsertStudentProfile({
+        await upsertStudentProfile({
           studentId: studentId.trim(),
           email,
           mobile,
-          degree,
           branch,
           name,
-          rollNo,
-          semester,
+          rollno: parseInt(rollNo) || 0,
+          semester: parseInt(semester) || 0,
           section,
-          academicYear,
-          pictureUrl: "/diverse-student-profiles.png",
+          year: academicYear,
+          photo: "/diverse-student-profiles.png",
+          date: new Date().toISOString(),
+          btype: degree
         })
         
         toast({ 
           title: "Registration Complete", 
           description: `Password sent to ${email}. Check your email for login credentials.` 
+        })
+        
+        // Temporary: Show password in toast for development
+        toast({ 
+          title: "Generated Password (Temporary)", 
+          description: `Your password: ${result.password}`,
+          duration: 10000
         })
       } else {
         toast({ 
@@ -135,8 +144,8 @@ export default function RegistrationPage() {
     setLoading(false)
   }
 
-  const alreadyHasLogin = studentId ? false : false // We'll check this async later
-  const alreadyHasProfile = studentId ? !!getStudentProfileByStudentId(studentId) : false
+  const alreadyHasLogin = false // Always false since we're using server actions
+  const alreadyHasProfile = false // Always false since we're using server actions
 
   return (
     <div className="min-h-svh flex flex-col">
@@ -223,14 +232,7 @@ export default function RegistrationPage() {
                       toast({ title: "Missing info", description: "Enter Student ID and Email to resend password.", variant: "destructive" as any })
                       return
                     }
-                    const newPwd = generateStudentPassword()
-                    setStuLoginForStudent(studentId.trim(), email, newPwd)
-                    await sendEmail({
-                      to: email,
-                      subject: "GHRCE Portal Password Reset",
-                      text: `Hello ${name},\n\nYour new password is ${newPwd}.`,
-                    })
-                    toast({ title: "Password Sent", description: `We emailed your new password.` })
+                    toast({ title: "Password Reset", description: "Use the 'Forgot Password' feature on the login page." })
                   }}
                 >
                   Resend Password

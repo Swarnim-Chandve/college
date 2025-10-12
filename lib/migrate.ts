@@ -1,5 +1,5 @@
 import { prisma } from './prisma'
-import { seedDatabase } from './db-prisma'
+import { seedDatabase } from './server-actions'
 
 async function migrateFromLocalStorage() {
   try {
