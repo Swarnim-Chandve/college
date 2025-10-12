@@ -29,7 +29,7 @@ export default function RepositoryPage() {
   const isAdmin = session?.type === "admin"
   
   const [department, setDepartment] = useState<string>("CSE")
-  const [session, setSession] = useState<string>("2024-25")
+  const [academicSession, setAcademicSession] = useState<string>("2024-25")
   const [term, setTerm] = useState<string>("Odd")
   const [semester, setSemester] = useState<string>("6")
   const subjects = subjectsByDeptSem[`${department}-${semester}`] ?? ["Subject 1", "Subject 2"]
@@ -47,14 +47,14 @@ export default function RepositoryPage() {
 
   useEffect(() => {
     loadFiles()
-  }, [department, session, term, semester, subject])
+  }, [department, academicSession, term, semester, subject])
 
   async function loadFiles() {
     setLoading(true)
     try {
       const filteredFiles = await getRepositoryFiles({
         department,
-        session,
+        session: academicSession,
         term,
         semester,
         subject
@@ -93,7 +93,7 @@ export default function RepositoryPage() {
         fileType: uploadFile.type,
         fileUrl,
         department,
-        session,
+        session: academicSession,
         term,
         semester,
         subject,
@@ -152,7 +152,7 @@ export default function RepositoryPage() {
               </div>
               <div className="space-y-2">
                 <Label>Session</Label>
-                <Select value={session} onValueChange={setSession}>
+                <Select value={academicSession} onValueChange={setAcademicSession}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select" />
                   </SelectTrigger>
