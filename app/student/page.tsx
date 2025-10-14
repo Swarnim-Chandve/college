@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { getSession, fetchSession } from "@/lib/auth-new"
-import { getStudentProfileByStudentId, listInternshipApplicationsByStudent } from "@/lib/server-actions"
+import { getStudentProfileByStudentId, listInternshipApplicationsByStudent, upsertStudentProfile, findRollByStudentId } from "@/lib/server-actions"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { fmtDate } from "@/lib/date"
@@ -15,12 +15,29 @@ export default function StudentHomePage() {
     async function loadData() {
       const s = await fetchSession()
       if (s && s.type === "student" && s.studentId) {
-        console.log('Loading profile for student:', s.studentId)
-        getStudentProfileByStudentId(s.studentId).then((profile) => {
-          console.log('Profile loaded:', profile)
-          setProfile(profile)
-          setLoading(false)
-        })
+        let p = await getStudentProfileByStudentId(s.studentId)
+        if (!p) {
+          // last-resort auto-provision from rolllist so dashboard never stays blank
+          try {
+            const roll = await findRollByStudentId(s.studentId)
+            await upsertStudentProfile({
+              studentId: s.studentId,
+              email: s.email,
+              name: roll?.name,
+              branch: roll?.dept ?? undefined,
+              semester: roll?.sem ? parseInt(roll.sem) : undefined,
+              section: roll?.sec ?? undefined,
+              rollno: roll?.rno ? parseInt(roll.rno) : undefined,
+              year: roll?.session ?? undefined,
+              btype: roll?.dtype ?? undefined,
+              photo: "/placeholder-user.jpg",
+              date: new Date().toISOString(),
+            })
+            p = await getStudentProfileByStudentId(s.studentId)
+          } catch {}
+        }
+        setProfile(p)
+        setLoading(false)
         listInternshipApplicationsByStudent(s.studentId).then(setApps)
       } else {
         setLoading(false)

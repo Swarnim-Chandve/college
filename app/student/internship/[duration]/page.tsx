@@ -8,6 +8,8 @@ import {
   searchCompaniesByName,
   getCompanyById,
   createInternshipApplication,
+  upsertStudentProfile,
+  findRollByStudentId,
 } from "@/lib/server-actions"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -93,8 +95,34 @@ export default function InternshipFormPage() {
 
   async function submit() {
     if (!profile) {
-      toast({ title: "Profile missing", description: "Please complete registration and try again.", variant: "destructive" as any })
-      return
+      // Try to auto-create a minimal profile from roll list and session
+      const s = getSession()
+      const sid = s?.studentId
+      if (!sid) {
+        toast({ title: "Profile missing", description: "Please complete registration and try again.", variant: "destructive" as any })
+        return
+      }
+      try {
+        const roll = await findRollByStudentId(sid)
+        await upsertStudentProfile({
+          studentId: sid,
+          email: s.email,
+          name: roll?.name,
+          branch: roll?.dept ?? undefined,
+          semester: roll?.sem ? parseInt(roll.sem) : undefined,
+          section: roll?.sec ?? undefined,
+          rollno: roll?.rno ? parseInt(roll.rno) : undefined,
+          year: roll?.session ?? undefined,
+          btype: roll?.dtype ?? undefined,
+          photo: "/placeholder-user.jpg",
+          date: new Date().toISOString(),
+        })
+        const p = await getStudentProfileByStudentId(sid)
+        setProfile(p)
+      } catch (e) {
+        toast({ title: "Profile missing", description: "Please complete registration and try again.", variant: "destructive" as any })
+        return
+      }
     }
     if (!company) {
       toast({ title: "No company selected", description: "Choose a company from list or dropdown.", variant: "destructive" as any })

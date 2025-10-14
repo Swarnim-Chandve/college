@@ -170,6 +170,56 @@ export async function loginUser(email: string, password: string): Promise<Sessio
   
   const sessionType = user.role === 'student' ? 'student' : 
                      user.role === 'admin' ? 'admin' : 'faculty'
+
+  // If student has no studentId linked yet, try to link by stuprofile.email
+  if (sessionType === 'student' && !user.studentId) {
+    try {
+      const profByEmail = await prisma.stuProfile.findFirst({ where: { email: user.email } })
+      if (profByEmail?.studentId) {
+        await prisma.user.update({
+          where: { email: user.email },
+          data: { studentId: profByEmail.studentId }
+        })
+        // reflect locally
+        ;(user as any).studentId = profByEmail.studentId
+      }
+    } catch (e) {
+      console.log('student_link_by_email_failed', e)
+    }
+  }
+
+  // Auto-provision student profile on first login if missing
+  if (sessionType === 'student' && user.studentId) {
+    try {
+      const existingProfile = await prisma.stuProfile.findUnique({
+        where: { studentId: user.studentId }
+      })
+      if (!existingProfile) {
+        // Try to hydrate from roll list
+        const roll = await prisma.rollList.findFirst({ where: { regno: user.studentId } })
+        await prisma.stuProfile.upsert({
+          where: { studentId: user.studentId },
+          update: {},
+          create: {
+            studentId: user.studentId,
+            name: roll?.name ?? (user.name || ''),
+            email: user.email,
+            branch: roll?.dept ?? undefined,
+            semester: roll?.sem ? parseInt(roll.sem) : undefined,
+            section: roll?.sec ?? undefined,
+            rollno: roll?.rno ? parseInt(roll.rno) : undefined,
+            year: roll?.session ?? undefined,
+            btype: roll?.dtype ?? undefined,
+            photo: '/placeholder-user.jpg',
+            date: new Date().toISOString(),
+          }
+        })
+      }
+    } catch (e) {
+      // non-fatal; do not block login
+      console.log('profile_autoprovision_failed', e)
+    }
+  }
   
   return {
     type: sessionType,
