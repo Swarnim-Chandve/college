@@ -8,6 +8,9 @@ import {
   searchCompaniesByName,
   getCompanyById,
   createInternshipApplication,
+  createJoining2w,
+  createJoining4w,
+  createJoining6m,
   upsertStudentProfile,
   findRollByStudentId,
 } from "@/lib/server-actions"
@@ -107,7 +110,7 @@ export default function InternshipFormPage() {
         await upsertStudentProfile({
           studentId: sid,
           email: s.email,
-          name: roll?.name,
+          name: roll?.name ?? undefined,
           branch: roll?.dept ?? undefined,
           semester: roll?.sem ? parseInt(roll.sem) : undefined,
           section: roll?.sec ?? undefined,
@@ -140,15 +143,36 @@ export default function InternshipFormPage() {
     
     setLoading(true)
     try {
-      await createInternshipApplication({
-        studentId: profile.studentId,
-        company: company.name,
-        duration,
-        startDate: new Date(toISOFromInput(from)),
-        endDate: new Date(toISOFromInput(to)),
-        totalDays,
-        status: "pending",
-      })
+      // Create application in the appropriate joining table based on duration
+      if (duration === "2w") {
+        await createJoining2w({
+          studentId: profile.studentId,
+          company: company.name,
+          startDate: new Date(toISOFromInput(from)),
+          endDate: new Date(toISOFromInput(to)),
+          totalDays,
+          status: "pending",
+        })
+      } else if (duration === "4w") {
+        await createJoining4w({
+          studentId: profile.studentId,
+          company: company.name,
+          startDate: new Date(toISOFromInput(from)),
+          endDate: new Date(toISOFromInput(to)),
+          totalDays,
+          status: "pending",
+        })
+      } else if (duration === "6m") {
+        await createJoining6m({
+          studentId: profile.studentId,
+          company: company.name,
+          startDate: new Date(toISOFromInput(from)),
+          endDate: new Date(toISOFromInput(to)),
+          totalDays,
+          status: "pending",
+        })
+      }
+      
       toast({ title: "Application submitted", description: "Your IRF is pending approval." })
       setFrom("")
       setTo("")
@@ -179,7 +203,7 @@ export default function InternshipFormPage() {
             </div>
             <div>
               <div className="text-xs text-muted-foreground">Roll No</div>
-              <div className="font-medium">{profile?.rollNo}</div>
+              <div className="font-medium">{profile?.rollno}</div>
             </div>
             <div>
               <div className="text-xs text-muted-foreground">Semester</div>
@@ -195,11 +219,11 @@ export default function InternshipFormPage() {
             </div>
             <div>
               <div className="text-xs text-muted-foreground">Degree</div>
-              <div className="font-medium">{profile?.degree}</div>
+              <div className="font-medium">{profile?.btype}</div>
             </div>
             <div>
               <div className="text-xs text-muted-foreground">Academic Year</div>
-              <div className="font-medium">{profile?.academicYear}</div>
+              <div className="font-medium">{profile?.year}</div>
             </div>
           </div>
 

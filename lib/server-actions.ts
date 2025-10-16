@@ -127,8 +127,12 @@ export async function loginUser(email: string, password: string) {
     const isValid = await verifyPassword(validatedData.password, user.password)
     if (!isValid) return null
     
-    const sessionType = user.role === 'student' ? 'student' : 
-                       user.role === 'admin' ? 'admin' : 'faculty'
+    // Preserve actual role for session (student | faculty | coordinator | dean | admin)
+    const sessionType =
+      user.role === 'student' ? 'student' :
+      user.role === 'admin' ? 'admin' :
+      user.role === 'coordinator' ? 'coordinator' :
+      user.role === 'dean' ? 'dean' : 'faculty'
     
     const session = {
       type: sessionType,
@@ -332,6 +336,36 @@ export async function getCompanyById(id: string) {
   } catch (error) {
     console.error('Error getting company by ID:', error)
     return null
+  }
+}
+
+export async function listCompanies() {
+  try {
+    return await prisma.company.findMany({
+      take: 100,
+      skip: 0,
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        website: true,
+        industry: true,
+        size: true,
+        location: true,
+        address: true,
+        personName: true,
+        designation: true,
+        email: true,
+        mobile: true,
+        state: true,
+        city: true,
+        sector: true
+      },
+      orderBy: { name: 'asc' }
+    })
+  } catch (error) {
+    console.error('Error listing companies:', error)
+    return []
   }
 }
 
@@ -571,6 +605,462 @@ export async function findRollByStudentId(studentId: string) {
   }
 }
 
+export async function fetchRollListDetails(studentId: string) {
+  try {
+    const rollEntry = await prisma.rollList.findFirst({
+      where: { regno: studentId }
+    })
+    
+    if (!rollEntry) {
+      return { success: false, error: 'Student not found in roll list' }
+    }
+    
+    return { 
+      success: true, 
+      data: {
+        studentId: rollEntry.regno,
+        name: rollEntry.name,
+        department: rollEntry.dept,
+        semester: rollEntry.sem,
+        section: rollEntry.sec,
+        rollNo: rollEntry.rno,
+        session: rollEntry.session,
+        degreeType: rollEntry.dtype
+      }
+    }
+  } catch (error) {
+    console.error('Error fetching roll list details:', error)
+    return { success: false, error: 'Failed to fetch roll list details' }
+  }
+}
+
+export async function createStudentProfileFromRollList(
+  studentId: string,
+  email: string,
+  mobile?: string
+) {
+  try {
+    const rollEntry = await prisma.rollList.findFirst({
+      where: { regno: studentId }
+    })
+    
+    if (!rollEntry) {
+      throw new Error('Student not found in roll list')
+    }
+    
+    // Create or update student profile
+    const profile = await prisma.stuProfile.upsert({
+      where: { studentId },
+      update: {
+        email,
+        mobile: mobile || 'N/A',
+        name: rollEntry.name,
+        branch: rollEntry.dept,
+        semester: parseInt(rollEntry.sem || '8'),
+        section: rollEntry.sec || 'A',
+        rollno: parseInt(rollEntry.rno || '1'),
+        year: rollEntry.session,
+        btype: rollEntry.dtype,
+        photo: '/diverse-student-profiles.png',
+        date: new Date().toISOString()
+      },
+      create: {
+        studentId,
+        email,
+        mobile: mobile || 'N/A',
+        name: rollEntry.name,
+        branch: rollEntry.dept,
+        semester: parseInt(rollEntry.sem || '8'),
+        section: rollEntry.sec || 'A',
+        rollno: parseInt(rollEntry.rno || '1'),
+        year: rollEntry.session,
+        btype: rollEntry.dtype,
+        photo: '/diverse-student-profiles.png',
+        date: new Date().toISOString()
+      }
+    })
+    
+    return profile
+  } catch (error) {
+    console.error('Error creating student profile from roll list:', error)
+    throw new Error('Failed to create student profile')
+  }
+}
+
+export async function createStudentLogin(
+  studentId: string,
+  email: string,
+  password: string,
+  name?: string
+) {
+  try {
+    const hashedPassword = await hashPassword(password)
+    
+    // Create user entry
+    const user = await prisma.user.upsert({
+      where: { email },
+      update: {
+        password: hashedPassword,
+        name: name || 'Student',
+        studentId,
+        role: 'student'
+      },
+      create: {
+        email,
+        password: hashedPassword,
+        name: name || 'Student',
+        studentId,
+        role: 'student'
+      }
+    })
+    
+    // Create student login entry
+    const login = await prisma.stuLogin.upsert({
+      where: { studentId },
+      update: {
+        email,
+        password: hashedPassword,
+        name: name || 'Student',
+        date: new Date().toISOString(),
+        year: '2024-25'
+      },
+      create: {
+        studentId,
+        email,
+        password: hashedPassword,
+        name: name || 'Student',
+        date: new Date().toISOString(),
+        year: '2024-25'
+      }
+    })
+    
+    return { user, login }
+  } catch (error) {
+    console.error('Error creating student login:', error)
+    throw new Error('Failed to create student login')
+  }
+}
+
+// Joining table operations
+export async function createJoining2w(data: {
+  studentId: string
+  company: string
+  startDate: Date
+  endDate: Date
+  totalDays: number
+  status?: string
+}) {
+  try {
+    return await prisma.joining2w.create({
+      data: {
+        studentId: data.studentId,
+        company: data.company,
+        startDate: data.startDate,
+        endDate: data.endDate,
+        totalDays: data.totalDays,
+        status: data.status || 'pending'
+      }
+    })
+  } catch (error) {
+    console.error('Error creating 2w joining:', error)
+    throw new Error('Failed to create 2w joining')
+  }
+}
+
+export async function createJoining4w(data: {
+  studentId: string
+  company: string
+  startDate: Date
+  endDate: Date
+  totalDays: number
+  status?: string
+}) {
+  try {
+    return await prisma.joining4w.create({
+      data: {
+        studentId: data.studentId,
+        company: data.company,
+        startDate: data.startDate,
+        endDate: data.endDate,
+        totalDays: data.totalDays,
+        status: data.status || 'pending'
+      }
+    })
+  } catch (error) {
+    console.error('Error creating 4w joining:', error)
+    throw new Error('Failed to create 4w joining')
+  }
+}
+
+export async function createJoining6m(data: {
+  studentId: string
+  company: string
+  startDate: Date
+  endDate: Date
+  totalDays: number
+  status?: string
+}) {
+  try {
+    return await prisma.joining6m.create({
+      data: {
+        studentId: data.studentId,
+        company: data.company,
+        startDate: data.startDate,
+        endDate: data.endDate,
+        totalDays: data.totalDays,
+        status: data.status || 'pending'
+      }
+    })
+  } catch (error) {
+    console.error('Error creating 6m joining:', error)
+    throw new Error('Failed to create 6m joining')
+  }
+}
+
+export async function listJoining2w() {
+  try {
+    const applications = await prisma.joining2w.findMany({
+      orderBy: { appliedAt: 'desc' }
+    })
+    
+    // Fetch student profiles for each application
+    const applicationsWithProfiles = await Promise.all(
+      applications.map(async (app) => {
+        const profile = await prisma.stuProfile.findUnique({
+          where: { studentId: app.studentId }
+        })
+        return {
+          ...app,
+          profile
+        }
+      })
+    )
+    
+    return applicationsWithProfiles
+  } catch (error) {
+    console.error('Error listing 2w joining:', error)
+    return []
+  }
+}
+
+export async function listJoining4w() {
+  try {
+    const applications = await prisma.joining4w.findMany({
+      orderBy: { appliedAt: 'desc' }
+    })
+    
+    // Fetch student profiles for each application
+    const applicationsWithProfiles = await Promise.all(
+      applications.map(async (app) => {
+        const profile = await prisma.stuProfile.findUnique({
+          where: { studentId: app.studentId }
+        })
+        return {
+          ...app,
+          profile
+        }
+      })
+    )
+    
+    return applicationsWithProfiles
+  } catch (error) {
+    console.error('Error listing 4w joining:', error)
+    return []
+  }
+}
+
+export async function listJoining6m() {
+  try {
+    const applications = await prisma.joining6m.findMany({
+      orderBy: { appliedAt: 'desc' }
+    })
+    
+    // Fetch student profiles for each application
+    const applicationsWithProfiles = await Promise.all(
+      applications.map(async (app) => {
+        const profile = await prisma.stuProfile.findUnique({
+          where: { studentId: app.studentId }
+        })
+        return {
+          ...app,
+          profile
+        }
+      })
+    )
+    
+    return applicationsWithProfiles
+  } catch (error) {
+    console.error('Error listing 6m joining:', error)
+    return []
+  }
+}
+
+// Approval functions for joining tables
+export async function approveJoining2w(id: string, approverEmail: string, approverRole: 'faculty' | 'coordinator' | 'dean' | 'admin') {
+  try {
+    const application = await prisma.joining2w.findUnique({ where: { id } })
+    if (!application) throw new Error('Application not found')
+
+    let newStatus = application.status
+    if (application.status === 'pending') {
+      if (approverRole === 'faculty') newStatus = 'approved_faculty'
+      else if (approverRole === 'coordinator') newStatus = 'approved_coordinator'
+      else if (approverRole === 'dean') newStatus = 'approved_dean'
+      else if (approverRole === 'admin') newStatus = 'approved'
+    } else if (application.status === 'approved_faculty') {
+      if (approverRole === 'coordinator') newStatus = 'approved_coordinator'
+      else if (approverRole === 'dean') newStatus = 'approved_dean'
+      else if (approverRole === 'admin') newStatus = 'approved'
+    } else if (application.status === 'approved_coordinator') {
+      if (approverRole === 'dean') newStatus = 'approved_dean'
+      else if (approverRole === 'admin') newStatus = 'approved'
+    } else if (application.status === 'approved_dean') {
+      if (approverRole === 'admin') newStatus = 'approved'
+    }
+
+    await prisma.joining2w.update({
+      where: { id },
+      data: {
+        status: newStatus,
+        approvedBy: approverEmail,
+        approvedAt: new Date()
+      }
+    })
+
+    return { success: true }
+  } catch (error) {
+    console.error('Error approving joining2w:', error)
+    throw error
+  }
+}
+
+export async function approveJoining4w(id: string, approverEmail: string, approverRole: 'faculty' | 'coordinator' | 'dean' | 'admin') {
+  try {
+    const application = await prisma.joining4w.findUnique({ where: { id } })
+    if (!application) throw new Error('Application not found')
+
+    let newStatus = application.status
+    if (application.status === 'pending') {
+      if (approverRole === 'faculty') newStatus = 'approved_faculty'
+      else if (approverRole === 'coordinator') newStatus = 'approved_coordinator'
+      else if (approverRole === 'dean') newStatus = 'approved_dean'
+      else if (approverRole === 'admin') newStatus = 'approved'
+    } else if (application.status === 'approved_faculty') {
+      if (approverRole === 'coordinator') newStatus = 'approved_coordinator'
+      else if (approverRole === 'dean') newStatus = 'approved_dean'
+      else if (approverRole === 'admin') newStatus = 'approved'
+    } else if (application.status === 'approved_coordinator') {
+      if (approverRole === 'dean') newStatus = 'approved_dean'
+      else if (approverRole === 'admin') newStatus = 'approved'
+    } else if (application.status === 'approved_dean') {
+      if (approverRole === 'admin') newStatus = 'approved'
+    }
+
+    await prisma.joining4w.update({
+      where: { id },
+      data: {
+        status: newStatus,
+        approvedBy: approverEmail,
+        approvedAt: new Date()
+      }
+    })
+
+    return { success: true }
+  } catch (error) {
+    console.error('Error approving joining4w:', error)
+    throw error
+  }
+}
+
+export async function approveJoining6m(id: string, approverEmail: string, approverRole: 'faculty' | 'coordinator' | 'dean' | 'admin') {
+  try {
+    const application = await prisma.joining6m.findUnique({ where: { id } })
+    if (!application) throw new Error('Application not found')
+
+    let newStatus = application.status
+    if (application.status === 'pending') {
+      if (approverRole === 'faculty') newStatus = 'approved_faculty'
+      else if (approverRole === 'coordinator') newStatus = 'approved_coordinator'
+      else if (approverRole === 'dean') newStatus = 'approved_dean'
+      else if (approverRole === 'admin') newStatus = 'approved'
+    } else if (application.status === 'approved_faculty') {
+      if (approverRole === 'coordinator') newStatus = 'approved_coordinator'
+      else if (approverRole === 'dean') newStatus = 'approved_dean'
+      else if (approverRole === 'admin') newStatus = 'approved'
+    } else if (application.status === 'approved_coordinator') {
+      if (approverRole === 'dean') newStatus = 'approved_dean'
+      else if (approverRole === 'admin') newStatus = 'approved'
+    } else if (application.status === 'approved_dean') {
+      if (approverRole === 'admin') newStatus = 'approved'
+    }
+
+    await prisma.joining6m.update({
+      where: { id },
+      data: {
+        status: newStatus,
+        approvedBy: approverEmail,
+        approvedAt: new Date()
+      }
+    })
+
+    return { success: true }
+  } catch (error) {
+    console.error('Error approving joining6m:', error)
+    throw error
+  }
+}
+
+export async function rejectJoining2w(id: string, rejectorEmail: string) {
+  try {
+    await prisma.joining2w.update({
+      where: { id },
+      data: {
+        status: 'rejected',
+        rejectedBy: rejectorEmail,
+        rejectedAt: new Date()
+      }
+    })
+    return { success: true }
+  } catch (error) {
+    console.error('Error rejecting joining2w:', error)
+    throw error
+  }
+}
+
+export async function rejectJoining4w(id: string, rejectorEmail: string) {
+  try {
+    await prisma.joining4w.update({
+      where: { id },
+      data: {
+        status: 'rejected',
+        rejectedBy: rejectorEmail,
+        rejectedAt: new Date()
+      }
+    })
+    return { success: true }
+  } catch (error) {
+    console.error('Error rejecting joining4w:', error)
+    throw error
+  }
+}
+
+export async function rejectJoining6m(id: string, rejectorEmail: string) {
+  try {
+    await prisma.joining6m.update({
+      where: { id },
+      data: {
+        status: 'rejected',
+        rejectedBy: rejectorEmail,
+        rejectedAt: new Date()
+      }
+    })
+    return { success: true }
+  } catch (error) {
+    console.error('Error rejecting joining6m:', error)
+    throw error
+  }
+}
+
 // Repository file operations
 export async function uploadRepositoryFile(data: {
   title: string
@@ -704,19 +1194,39 @@ export async function seedDatabase() {
       await prisma.facRole.create({ data: role }).catch(() => {})
     }
 
-    // Seed roll list with sample students
-    const rollList = [
-      { dept: 'CSE', sem: '8', sec: 'A', rno: '1', name: 'Aditya Pramod Bhagat', regno: '2021ACSC1101155', session: '2024-25', dtype: 'B.Tech' },
-      { dept: 'CSE', sem: '8', sec: 'A', rno: '2', name: 'Priya Sharma', regno: '2021ACSC1101156', session: '2024-25', dtype: 'B.Tech' },
-      { dept: 'CSE', sem: '8', sec: 'A', rno: '3', name: 'Rajesh Kumar', regno: '2021ACSC1101157', session: '2024-25', dtype: 'B.Tech' },
-      { dept: 'IT', sem: '8', sec: 'B', rno: '1', name: 'Sneha Patel', regno: '2021ACIT1101201', session: '2024-25', dtype: 'B.Tech' },
-      { dept: 'IT', sem: '8', sec: 'B', rno: '2', name: 'Amit Singh', regno: '2021ACIT1101202', session: '2024-25', dtype: 'B.Tech' },
-      { dept: 'ECE', sem: '8', sec: 'C', rno: '1', name: 'Neha Gupta', regno: '2021ACEC1101301', session: '2024-25', dtype: 'B.Tech' },
-      { dept: 'ECE', sem: '8', sec: 'C', rno: '2', name: 'Vikram Yadav', regno: '2021ACEC1101302', session: '2024-25', dtype: 'B.Tech' }
-    ]
+    // Ensure single TNP coordinator user login
+    await prisma.user.upsert({
+      where: { email: 'tnp@ghrce.com' },
+      update: {
+        name: 'TNP Coordinator',
+        role: 'coordinator',
+        employeeId: null
+      },
+      create: {
+        email: 'tnp@ghrce.com',
+        password: await hashPassword('password123'),
+        name: 'TNP Coordinator',
+        role: 'coordinator',
+        employeeId: null
+      }
+    })
 
-    for (const student of rollList) {
-      await prisma.rollList.create({ data: student }).catch(() => {})
+    // Check if roll list already has data, if not create some sample entries
+    const existingRollList = await prisma.rollList.count()
+    if (existingRollList === 0) {
+      console.log('No roll list data found, creating sample entries...')
+      // Only create sample data if no data exists
+      const sampleRollList = [
+        { dept: 'CSE', sem: '8', sec: 'A', rno: '1', name: 'Sample Student 1', regno: '2021ACSC1101155', session: '2024-25', dtype: 'B.Tech' },
+        { dept: 'CSE', sem: '8', sec: 'A', rno: '2', name: 'Sample Student 2', regno: '2021ACSC1101156', session: '2024-25', dtype: 'B.Tech' },
+        { dept: 'IT', sem: '8', sec: 'B', rno: '1', name: 'Sample Student 3', regno: '2021ACIT1101201', session: '2024-25', dtype: 'B.Tech' }
+      ]
+
+      for (const student of sampleRollList) {
+        await prisma.rollList.create({ data: student }).catch(() => {})
+      }
+    } else {
+      console.log(`Found ${existingRollList} existing roll list entries, skipping roll list creation`)
     }
 
     // Ensure admin user exists (final check)

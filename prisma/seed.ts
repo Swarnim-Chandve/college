@@ -191,13 +191,13 @@ async function main() {
 
   // Seed roll list with sample students
   const rollList = [
-    { dept: 'CSE', sem: '8', sec: 'A', rno: '1', name: 'Aditya Pramod Bhagat', regno: '2021ACSC1101155', session: '2024-25', dtype: 'B.Tech' },
-    { dept: 'CSE', sem: '8', sec: 'A', rno: '2', name: 'Priya Sharma', regno: '2021ACSC1101156', session: '2024-25', dtype: 'B.Tech' },
-    { dept: 'CSE', sem: '8', sec: 'A', rno: '3', name: 'Rajesh Kumar', regno: '2021ACSC1101157', session: '2024-25', dtype: 'B.Tech' },
-    { dept: 'IT', sem: '8', sec: 'B', rno: '1', name: 'Sneha Patel', regno: '2021ACIT1101201', session: '2024-25', dtype: 'B.Tech' },
-    { dept: 'IT', sem: '8', sec: 'B', rno: '2', name: 'Amit Singh', regno: '2021ACIT1101202', session: '2024-25', dtype: 'B.Tech' },
-    { dept: 'ECE', sem: '8', sec: 'C', rno: '1', name: 'Neha Gupta', regno: '2021ACEC1101301', session: '2024-25', dtype: 'B.Tech' },
-    { dept: 'ECE', sem: '8', sec: 'C', rno: '2', name: 'Vikram Yadav', regno: '2021ACEC1101302', session: '2024-25', dtype: 'B.Tech' }
+    { dept: 'CSE', sem: '8', sec: 'A', rno: '1', name: 'Sample Student 1', regno: '2021ACSC1101155', session: '2024-25', dtype: 'B.Tech' },
+    { dept: 'CSE', sem: '8', sec: 'A', rno: '2', name: 'Sample Student 2', regno: '2021ACSC1101156', session: '2024-25', dtype: 'B.Tech' },
+    { dept: 'CSE', sem: '8', sec: 'A', rno: '3', name: 'Sample Student 3', regno: '2021ACSC1101157', session: '2024-25', dtype: 'B.Tech' },
+    { dept: 'IT', sem: '8', sec: 'B', rno: '1', name: 'Sample Student 4', regno: '2021ACIT1101201', session: '2024-25', dtype: 'B.Tech' },
+    { dept: 'IT', sem: '8', sec: 'B', rno: '2', name: 'Sample Student 5', regno: '2021ACIT1101202', session: '2024-25', dtype: 'B.Tech' },
+    { dept: 'ECE', sem: '8', sec: 'C', rno: '1', name: 'Sample Student 6', regno: '2021ACEC1101301', session: '2024-25', dtype: 'B.Tech' },
+    { dept: 'ECE', sem: '8', sec: 'C', rno: '2', name: 'Sample Student 7', regno: '2021ACEC1101302', session: '2024-25', dtype: 'B.Tech' }
   ]
 
   for (const student of rollList) {

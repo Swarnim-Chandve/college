@@ -3,15 +3,24 @@
 import { useEffect, useMemo, useState } from "react"
 import { useSearchParams } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { getSession } from "@/lib/auth-new"
+import { getSession, fetchSession } from "@/lib/auth-new"
 import { 
   listStuProfiles, 
-  listInternshipApplications, 
+  listInternshipApplications,
+  listJoining2w,
+  listJoining4w,
+  listJoining6m,
   updateInternshipApplicationStatus,
   approveInternshipApplication,
   rejectInternshipApplication,
   verifyInternshipCertificate,
-  seedDatabase
+  seedDatabase,
+  approveJoining2w,
+  approveJoining4w,
+  approveJoining6m,
+  rejectJoining2w,
+  rejectJoining4w,
+  rejectJoining6m
 } from "@/lib/server-actions"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -93,7 +102,7 @@ function StudentsTable() {
 function ApprovalsTable() {
   const [session, setSession] = useState<any>(null)
   const { toast } = useToast()
-  const role = session?.type === "admin" ? "admin" : session?.type === "faculty" ? "faculty" : "coordinator"
+  const role = session?.type === "admin" ? "admin" : session?.type === "faculty" ? "faculty" : session?.type === "dean" ? "dean" : "coordinator"
   const [rows, setRows] = useState<any[]>([])
   const [search, setSearch] = useState("")
   const [statusTab, setStatusTab] = useState<"all" | "pending" | "approved" | "rejected">("all")
@@ -109,8 +118,21 @@ function ApprovalsTable() {
   }, [])
 
   async function loadApplications() {
-    const applications = await listInternshipApplications()
-    setRows(applications)
+    // Load applications from joining tables only (no more main table)
+    const [joining2w, joining4w, joining6m] = await Promise.all([
+      listJoining2w(),
+      listJoining4w(),
+      listJoining6m()
+    ])
+    
+    // Combine all applications with their source table
+    const allApplications = [
+      ...joining2w.map(app => ({ ...app, source: '2w', duration: '2w' })),
+      ...joining4w.map(app => ({ ...app, source: '4w', duration: '4w' })),
+      ...joining6m.map(app => ({ ...app, source: '6m', duration: '6m' }))
+    ]
+    
+    setRows(allApplications)
   }
 
   function refresh() {
@@ -136,10 +158,18 @@ function ApprovalsTable() {
     }
   }
 
-  async function approve(id: string) {
+  async function approve(id: string, source: string) {
     if (!session || !session.email) return
     try {
-      await approveInternshipApplication(id, session.email, role as any)
+      if (source === '2w') {
+        await approveJoining2w(id, session.email, role as any)
+      } else if (source === '4w') {
+        await approveJoining4w(id, session.email, role as any)
+      } else if (source === '6m') {
+        await approveJoining6m(id, session.email, role as any)
+      } else {
+        await approveInternshipApplication(id, session.email, role as any)
+      }
       toast({ title: "Approved", description: "Application approved successfully." })
       refresh()
     } catch (error) {
@@ -147,10 +177,18 @@ function ApprovalsTable() {
     }
   }
 
-  async function reject(id: string) {
+  async function reject(id: string, source: string) {
     if (!session || !session.email) return
     try {
-      await rejectInternshipApplication(id, session.email)
+      if (source === '2w') {
+        await rejectJoining2w(id, session.email)
+      } else if (source === '4w') {
+        await rejectJoining4w(id, session.email)
+      } else if (source === '6m') {
+        await rejectJoining6m(id, session.email)
+      } else {
+        await rejectInternshipApplication(id, session.email)
+      }
       toast({ title: "Rejected", description: "Application rejected." })
       refresh()
     } catch (error) {
@@ -361,10 +399,10 @@ function ApprovalsTable() {
                     </div>
                   </TableCell>
                   <TableCell className="space-x-2">
-                    <Button size="sm" disabled={!canApprove(r.status)} onClick={() => approve(r.id)}>
+                    <Button size="sm" disabled={!canApprove(r.status)} onClick={() => approve(r.id, r.source)}>
                       Approve
                     </Button>
-                    <Button size="sm" variant="outline" disabled={r.status === "rejected"} onClick={() => reject(r.id)}>
+                    <Button size="sm" variant="outline" disabled={r.status === "rejected"} onClick={() => reject(r.id, r.source)}>
                       Reject
                     </Button>
                     <Button size="sm" variant="secondary" disabled={!r.certificateFileName || r.certificateVerified} onClick={() => markVerified(r.id)}>
@@ -484,13 +522,13 @@ export default function FacultyPage() {
   const sp = useSearchParams()
   const tab = sp.get("tab") ?? "home"
   const s = getSession()
-  const role = s?.type === "admin" ? "admin" : s?.type === "faculty" ? "coordinator" : "dean"
+  const role = s?.type === "admin" ? "admin" : s?.type === "faculty" ? "faculty" : s?.type === "dean" ? "dean" : s?.type === "coordinator" ? "coordinator" : "faculty"
 
   return (
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Welcome {s?.type === "faculty" ? s.name : "Faculty"}</CardTitle>
+          <CardTitle>Welcome {s?.type === "faculty" ? s.name : s?.type === "coordinator" ? "TNP Coordinator" : "Faculty"}</CardTitle>
         </CardHeader>
         <CardContent>
           <p className="text-sm text-muted-foreground">

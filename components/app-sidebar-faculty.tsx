@@ -27,15 +27,17 @@ export function FacultySidebar() {
   const [role, setRole] = useState("faculty")
   useEffect(() => {
     const s = getSession()
-    if (s?.type === "faculty" || s?.type === "admin") {
-      setName((s.name || s.email).split("@")[0])
-      setRole(s.role)
+    if (s && (s.type === "faculty" || s.type === "coordinator" || s.type === "dean" || s.type === "admin")) {
+      const display = s.type === "coordinator" ? "TNP Coordinator" : (s.name || s.email).split("@")[0]
+      setName(display)
+      setRole(s.type)
       return
     }
     fetchSession().then((ss) => {
-      if (ss && (ss.type === "faculty" || ss.type === "admin")) {
-        setName((ss.name || ss.email).split("@")[0])
-        setRole(ss.role)
+      if (ss && (ss.type === "faculty" || ss.type === "coordinator" || ss.type === "dean" || ss.type === "admin")) {
+        const display = ss.type === "coordinator" ? "TNP Coordinator" : (ss.name || ss.email).split("@")[0]
+        setName(display)
+        setRole(ss.type)
       }
     })
   }, [])

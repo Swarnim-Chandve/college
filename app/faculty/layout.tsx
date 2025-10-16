@@ -12,14 +12,24 @@ import { fetchSession } from "@/lib/auth-new"
 export default function FacultyLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(true)
+  const [dashTitle, setDashTitle] = useState("Faculty Dashboard")
   
   useEffect(() => {
     async function checkSession() {
       const session = await fetchSession()
-      // Allow both faculty and admin into the faculty dashboard
-      if (!session || (session.type !== "faculty" && session.type !== "admin")) {
+      // Allow faculty, coordinator, dean, and admin into the faculty dashboard
+      if (!session || (session.type !== "faculty" && session.type !== "coordinator" && session.type !== "dean" && session.type !== "admin")) {
         router.replace("/login")
       } else {
+        if (session.type === "coordinator") {
+          setDashTitle("TNP Coordinator Dashboard")
+        } else if (session.type === "dean") {
+          setDashTitle("Dean Dashboard")
+        } else if (session.type === "admin") {
+          setDashTitle("Admin Dashboard")
+        } else {
+          setDashTitle("Faculty Dashboard")
+        }
         setIsLoading(false)
       }
     }
@@ -43,7 +53,7 @@ export default function FacultyLayout({ children }: { children: React.ReactNode 
       <SidebarInset>
         <div className="flex h-12 items-center gap-2 border-b px-3">
           <SidebarTrigger />
-          <h1 className="text-sm font-medium">Faculty Dashboard</h1>
+          <h1 className="text-sm font-medium">{dashTitle}</h1>
         </div>
         <div className="p-4">{children}</div>
       </SidebarInset>

@@ -31,6 +31,12 @@ next-env.d.ts
 *.xls
 *.csv
 
+# Sensitive data files
+scripts/bulk-import-*.ts
+data/students.json
+data/*.csv
+data/*.xlsx
+
 # Legacy files
 lib/auth.ts
 lib/db-prisma.ts

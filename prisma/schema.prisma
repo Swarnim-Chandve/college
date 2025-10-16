@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -11,13 +8,13 @@ datasource db {
 }
 
 model RollList {
-  id      String @id @default(cuid())
+  id      String  @id @default(cuid())
   dept    String?
   sem     String?
   sec     String?
   rno     String?
   name    String?
-  regno   String?
+  regno   String? @unique
   session String?
   dtype   String?
 
@@ -25,8 +22,8 @@ model RollList {
 }
 
 model StuLogin {
-  id        String @id @default(cuid())
-  studentId String @unique
+  id        String  @id @default(cuid())
+  studentId String  @unique
   name      String?
   email     String? @unique
   password  String?
@@ -37,8 +34,8 @@ model StuLogin {
 }
 
 model StuProfile {
-  id        String @id @default(cuid())
-  studentId String @unique
+  id        String  @id @default(cuid())
+  studentId String  @unique
   name      String?
   email     String? @unique
   branch    String?
@@ -55,8 +52,8 @@ model StuProfile {
 }
 
 model FacReg {
-  id         String @id @default(cuid())
-  fid        String @unique
+  id         String  @id @default(cuid())
+  fid        String  @unique
   name       String?
   desg       String?
   dept       String?
@@ -66,7 +63,7 @@ model FacReg {
 }
 
 model FacRole {
-  id      String @id @default(cuid())
+  id      String  @id @default(cuid())
   session String?
   fid     String?
   name    String?
@@ -78,71 +75,142 @@ model FacRole {
 }
 
 model Company {
-  id          String @id @default(cuid())
-  name        String @unique
+  id          String  @id @default(cuid())
+  name        String  @unique
   description String?
   website     String?
   industry    String?
   size        String?
   location    String?
-  
-  // Additional fields for internship form
   address     String?
-  personName  String?
+  city        String?
   designation String?
   email       String?
   mobile      String?
-  state       String?
-  city        String?
+  personName  String?
   sector      String?
+  state       String?
 
   @@map("companies")
 }
 
 model User {
-  id            String    @id @default(cuid())
-  email         String    @unique
-  password      String    // Hashed with bcrypt
-  name          String?
-  role          String    // student, faculty, admin
-  studentId     String?   // For students
-  employeeId    String?   // For faculty
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id         String   @id @default(cuid())
+  email      String   @unique
+  password   String
+  name       String?
+  role       String
+  studentId  String?
+  employeeId String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
   @@map("users")
 }
 
 model InternshipApplication {
-  id          String @id @default(cuid())
-  studentId   String
-  company     String
-  duration    String
-  startDate   DateTime
-  endDate     DateTime
-  totalDays   Int
-  status      String @default("pending") // pending, approved, rejected
-  appliedAt   DateTime @default(now())
-  approvedBy  String?
-  approvedAt  DateTime?
-  rejectedBy  String?
-  rejectedAt  DateTime?
-  
-  // Certificate fields
-  certificateFileName String?
-  certificateFileSize Int?
-  certificateFileType String?
-  certificateUrl      String?
+  id                    String    @id @default(cuid())
+  studentId             String
+  company               String
+  duration              String
+  startDate             DateTime
+  endDate               DateTime
+  totalDays             Int
+  status                String    @default("pending")
+  appliedAt             DateTime  @default(now())
+  approvedBy            String?
+  approvedAt            DateTime?
+  rejectedBy            String?
+  rejectedAt            DateTime?
+  certificateFileName   String?
+  certificateFileSize   Int?
+  certificateFileType   String?
+  certificateUrl        String?
   certificateUploadedAt DateTime?
-  certificateVerified   Boolean @default(false)
-  certificateVerifiedBy  String?
-  certificateVerifiedAt  DateTime?
+  certificateVerified   Boolean   @default(false)
+  certificateVerifiedBy String?
+  certificateVerifiedAt DateTime?
 
   @@map("internship_applications")
 }
 
+model Joining2w {
+  id                    String    @id @default(cuid())
+  studentId             String
+  company               String
+  startDate             DateTime
+  endDate               DateTime
+  totalDays             Int
+  status                String    @default("pending")
+  appliedAt             DateTime  @default(now())
+  approvedBy            String?
+  approvedAt            DateTime?
+  rejectedBy            String?
+  rejectedAt            DateTime?
+  certificateFileName   String?
+  certificateFileSize   Int?
+  certificateFileType   String?
+  certificateUrl        String?
+  certificateUploadedAt DateTime?
+  certificateVerified   Boolean   @default(false)
+  certificateVerifiedBy String?
+  certificateVerifiedAt DateTime?
+
+  @@map("joining_2w")
+}
+
+model Joining4w {
+  id                    String    @id @default(cuid())
+  studentId             String
+  company               String
+  startDate             DateTime
+  endDate               DateTime
+  totalDays             Int
+  status                String    @default("pending")
+  appliedAt             DateTime  @default(now())
+  approvedBy            String?
+  approvedAt            DateTime?
+  rejectedBy            String?
+  rejectedAt            DateTime?
+  certificateFileName   String?
+  certificateFileSize   Int?
+  certificateFileType   String?
+  certificateUrl        String?
+  certificateUploadedAt DateTime?
+  certificateVerified   Boolean   @default(false)
+  certificateVerifiedBy String?
+  certificateVerifiedAt DateTime?
+
+  @@map("joining_4w")
+}
+
+model Joining6m {
+  id                    String    @id @default(cuid())
+  studentId             String
+  company               String
+  startDate             DateTime
+  endDate               DateTime
+  totalDays             Int
+  status                String    @default("pending")
+  appliedAt             DateTime  @default(now())
+  approvedBy            String?
+  approvedAt            DateTime?
+  rejectedBy            String?
+  rejectedAt            DateTime?
+  certificateFileName   String?
+  certificateFileSize   Int?
+  certificateFileType   String?
+  certificateUrl        String?
+  certificateUploadedAt DateTime?
+  certificateVerified   Boolean   @default(false)
+  certificateVerifiedBy String?
+  certificateVerifiedAt DateTime?
+
+  @@map("joining_6m")
+}
+
 model RepositoryFile {
-  id          String @id @default(cuid())
+  id          String   @id @default(cuid())
   title       String
   description String?
   fileName    String
@@ -156,7 +224,7 @@ model RepositoryFile {
   subject     String
   uploadedBy  String
   uploadedAt  DateTime @default(now())
-  isActive    Boolean @default(true)
+  isActive    Boolean  @default(true)
 
   @@map("repository_files")
 }

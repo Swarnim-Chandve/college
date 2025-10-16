@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { getSession, fetchSession } from "@/lib/auth-new"
-import { attachInternshipCertificate, listInternshipApplicationsByStudent } from "@/lib/server-actions"
+import { listJoining2w, listJoining4w, listJoining6m } from "@/lib/server-actions"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
@@ -15,66 +15,36 @@ export default function MyApplicationsPage() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const s = getSession()
-    if (s?.type === "student" && s.studentId) {
-      listInternshipApplicationsByStudent(s.studentId).then((data) => {
-        setApps(data)
-        setLoading(false)
-      })
-      return
-    }
-    fetchSession().then((ss) => {
-      if (ss?.type === "student" && ss.studentId) {
-        listInternshipApplicationsByStudent(ss.studentId).then((data) => {
-          setApps(data)
-          setLoading(false)
-        })
-      } else {
-        setLoading(false)
+    async function load() {
+      const s = getSession() || (await fetchSession())
+      if (s?.type === "student" && s.studentId) {
+        const [j2, j4, j6] = await Promise.all([listJoining2w(), listJoining4w(), listJoining6m()])
+        const mine = [
+          ...j2.filter(a => a.studentId === s.studentId).map(a => ({ ...a, duration: '2w' })),
+          ...j4.filter(a => a.studentId === s.studentId).map(a => ({ ...a, duration: '4w' })),
+          ...j6.filter(a => a.studentId === s.studentId).map(a => ({ ...a, duration: '6m' })),
+        ]
+        setApps(mine)
       }
-    })
+      setLoading(false)
+    }
+    load()
   }, [])
 
-  function refresh() {
-    const s = getSession()
+  async function refresh() {
+    const s = getSession() || (await fetchSession())
     if (s?.type === "student" && s.studentId) {
-      listInternshipApplicationsByStudent(s.studentId).then(setApps)
-      return
+      const [j2, j4, j6] = await Promise.all([listJoining2w(), listJoining4w(), listJoining6m()])
+      const mine = [
+        ...j2.filter(a => a.studentId === s.studentId).map(a => ({ ...a, duration: '2w' })),
+        ...j4.filter(a => a.studentId === s.studentId).map(a => ({ ...a, duration: '4w' })),
+        ...j6.filter(a => a.studentId === s.studentId).map(a => ({ ...a, duration: '6m' })),
+      ]
+      setApps(mine)
     }
-    fetchSession().then((ss) => {
-      if (ss?.type === "student" && ss.studentId) {
-        listInternshipApplicationsByStudent(ss.studentId).then(setApps)
-      }
-    })
   }
 
-  async function onUpload(e: React.ChangeEvent<HTMLInputElement>, appId: string) {
-    const file = e.target.files?.[0]
-    if (!file) return
-    if (file.type !== "application/pdf") {
-      toast({ title: "Invalid file type", description: "Only PDF files are allowed.", variant: "destructive" as any })
-      e.target.value = ""
-      return
-    }
-    const maxBytes = 2 * 1024 * 1024 // 2 MB demo limit
-    if (file.size > maxBytes) {
-      toast({ title: "File too large", description: "Max size is 2 MB.", variant: "destructive" as any })
-      e.target.value = ""
-      return
-    }
-    const buffer = await file.arrayBuffer()
-    const base64 = typeof window !== "undefined" ? btoa(String.fromCharCode(...new Uint8Array(buffer))) : ""
-    const url = `data:${file.type};base64,${base64}`
-    await attachInternshipCertificate(appId, {
-      fileName: file.name,
-      fileSize: file.size,
-      fileType: file.type,
-      url,
-    })
-    toast({ description: "Certificate uploaded." })
-    e.target.value = ""
-    refresh()
-  }
+  // Note: Certificate upload via joining tables is not wired here in this view.
 
   return (
     <div className="space-y-6">

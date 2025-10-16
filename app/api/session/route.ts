@@ -11,7 +11,7 @@ const COOKIE_OPTIONS = {
 }
 
 export async function GET() {
-  const jar = cookies()
+  const jar = await cookies()
   const value = jar.get(COOKIE_NAME)?.value
   if (!value) return NextResponse.json({ session: null })
   try {

@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { useToast } from "@/hooks/use-toast"
-import { registerStudent, getUserByStudentId, findRollByStudentId as findRollByStudentIdServer, upsertStudentProfile } from "@/lib/server-actions"
+import { registerStudent, getUserByStudentId, findRollByStudentId as findRollByStudentIdServer, upsertStudentProfile, fetchRollListDetails, createStudentProfileFromRollList, createStudentLogin } from "@/lib/server-actions"
 
 export default function RegistrationPage() {
   const { toast } = useToast()
@@ -40,36 +40,40 @@ export default function RegistrationPage() {
     }
     
     try {
-      const roll = await findRollByStudentIdServer(studentId.trim())
-      if (!roll) {
-        toast({ title: "Not found", description: "No record found in roll list. Please verify Student ID.", variant: "destructive" as any })
+      const result = await fetchRollListDetails(studentId.trim())
+      if (!result.success) {
+        toast({ title: "Not found", description: result.error || "No record found in roll list. Please verify Student ID.", variant: "destructive" as any })
         return
       }
       
+      const rollData = result.data
+      
       // Check if user already exists in new auth system
-      const existingUser = await getUserByStudentId(roll.regno || '')
+      const existingUser = await getUserByStudentId(rollData.studentId)
       if (existingUser) {
         toast({ description: "You are already registered.", title: "Registration Exists", variant: "destructive" as any })
         setFetched(true)
-        setDegree(roll.dtype || '')
-        setBranch(roll.dept || '')
-        setName(roll.name || '')
-        setRollNo(roll.rno || '')
-        setSemester(roll.sem || '')
-        setSection(roll.sec || '')
-        setAcademicYear(roll.session || '2024-25')
+        setDegree(rollData.degreeType || '')
+        setBranch(rollData.department || '')
+        setName(rollData.name || '')
+        setRollNo(rollData.rollNo || '')
+        setSemester(rollData.semester || '')
+        setSection(rollData.section || '')
+        setAcademicYear(rollData.session || '2024-25')
         setEmail(existingUser.email || '')
         return
       }
       
-      setDegree(roll.dtype || '')
-      setBranch(roll.dept || '')
-      setName(roll.name || '')
-      setRollNo(roll.rno || '')
-      setSemester(roll.sem || '')
-      setSection(roll.sec || '')
-      setAcademicYear(roll.session || '2024-25')
+      setDegree(rollData.degreeType || '')
+      setBranch(rollData.department || '')
+      setName(rollData.name || '')
+      setRollNo(rollData.rollNo || '')
+      setSemester(rollData.semester || '')
+      setSection(rollData.section || '')
+      setAcademicYear(rollData.session || '2024-25')
       setFetched(true)
+      
+      toast({ title: "Success", description: "Student details fetched successfully" })
     } catch (error) {
       toast({ title: "Error", description: "Failed to fetch details. Please try again.", variant: "destructive" as any })
     }
@@ -91,48 +95,40 @@ export default function RegistrationPage() {
     setLoading(true)
     
     try {
-      // Register student with new auth system
-      const result = await registerStudent({
-        email,
-        name,
-        studentId: studentId.trim()
+      // Generate a password for the student
+      const password = `GHRCE_${Math.floor(Math.random() * 9000) + 1000}`
+      
+      // Create student profile from roll list data
+      await createStudentProfileFromRollList(studentId.trim(), email, mobile)
+      
+      // Create student login credentials
+      await createStudentLogin(studentId.trim(), email, password, name)
+      
+      toast({ 
+        title: "Registration Complete", 
+        description: `Your account has been created successfully. You can now log in with your email and password.` 
       })
       
-      if (result.success) {
-        // Also create profile in legacy system for now (we'll migrate this later)
-        await upsertStudentProfile({
-          studentId: studentId.trim(),
-          email,
-          mobile,
-          branch,
-          name,
-          rollno: parseInt(rollNo) || 0,
-          semester: parseInt(semester) || 0,
-          section,
-          year: academicYear,
-          photo: "/diverse-student-profiles.png",
-          date: new Date().toISOString(),
-          btype: degree
-        })
-        
-        toast({ 
-          title: "Registration Complete", 
-          description: `Password sent to ${email}. Check your email for login credentials.` 
-        })
-        
-        // Temporary: Show password in toast for development
-        toast({ 
-          title: "Generated Password (Temporary)", 
-          description: `Your password: ${result.password}`,
-          duration: 10000
-        })
-      } else {
-        toast({ 
-          title: "Registration Failed", 
-          description: result.error || "Unknown error occurred",
-          variant: "destructive" as any 
-        })
-      }
+      // Temporary: Show password in toast for development
+      toast({ 
+        title: "Your Login Credentials (Temporary)", 
+        description: `Email: ${email}\nPassword: ${password}`,
+        duration: 15000
+      })
+      
+      // Reset form
+      setStudentId("")
+      setFetched(false)
+      setEmail("")
+      setMobile("")
+      setName("")
+      setBranch("")
+      setDegree("")
+      setRollNo("")
+      setSemester("")
+      setSection("")
+      setAcademicYear("2024-25")
+      setAgree(false)
     } catch (error) {
       toast({ 
         title: "Registration Error", 

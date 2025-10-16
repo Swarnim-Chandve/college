@@ -15,7 +15,7 @@ export interface AuthUser {
 }
 
 export interface Session {
-  type: 'student' | 'faculty' | 'admin'
+  type: 'student' | 'faculty' | 'coordinator' | 'dean' | 'admin'
   email: string
   name: string
   userId: string
@@ -168,8 +168,11 @@ export async function loginUser(email: string, password: string): Promise<Sessio
   const isValid = await verifyPassword(password, user.password)
   if (!isValid) return null
   
-  const sessionType = user.role === 'student' ? 'student' : 
-                     user.role === 'admin' ? 'admin' : 'faculty'
+  const sessionType =
+    user.role === 'student' ? 'student' :
+    user.role === 'admin' ? 'admin' :
+    user.role === 'coordinator' ? 'coordinator' :
+    user.role === 'dean' ? 'dean' : 'faculty'
 
   // If student has no studentId linked yet, try to link by stuprofile.email
   if (sessionType === 'student' && !user.studentId) {
