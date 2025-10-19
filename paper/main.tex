@@ -179,11 +179,22 @@ There is also limited empirical analysis of client‑side architectures in acade
 The system implements:
 \begin{itemize}[leftmargin=*,nosep]
   \item \textbf{Authentication \& Session}: APIs to establish and validate sessions, plus a debug/test login path for development.
-  \item \textbf{Student Area}: Dashboard, internship pages parameterized by duration, applications, and settings.
-  \item \textbf{Faculty Area}: Role-aware navigation and views aligned with faculty responsibilities.
+  \item \textbf{Student Area}: Dashboard, internship pages parameterized by duration (2w, 4w, 6m, 1y), applications, and settings.
+  \item \textbf{Faculty Area}: Role-aware navigation, comprehensive reports dashboard with analytics, and views aligned with faculty responsibilities.
   \item \textbf{Data Operations}: Bulk imports for students, logins, faculty registration/roles, roll lists, and student profiles; dedicated seed/migrate endpoints.
   \item \textbf{Repository View}: UI surface for repository files (subject to active schema migration).
   \item \textbf{Email}: An endpoint for outbound messages via a configurable transport.
+  \item \textbf{Analytics \& Reporting}: Branch-wise statistics, duration analysis, filter tracking, and comprehensive dashboard metrics.
+\end{itemize}
+
+\subsection{Version 3 Enhancements}
+The latest iteration (v3) introduces significant improvements:
+\begin{itemize}[leftmargin=*,nosep]
+  \item \textbf{Extended Duration Support}: Added 1-year internship duration option with complete database schema and workflow integration.
+  \item \textbf{Enhanced Analytics}: Comprehensive reports dashboard featuring branch-wise statistics, duration breakdowns, and real-time filter tracking.
+  \item \textbf{Improved User Experience}: Larger, bolder typography for better readability and professional dashboard appearance.
+  \item \textbf{Advanced Filtering}: Multi-dimensional filtering with clear visual indicators and one-click reset functionality.
+  \item \textbf{Type Safety}: Enhanced TypeScript integration with updated duration types and improved error handling.
 \end{itemize}
 
 \subsection{Architecture}
