@@ -209,6 +209,31 @@ model Joining6m {
   @@map("joining_6m")
 }
 
+model Joining1y {
+  id                    String    @id @default(cuid())
+  studentId             String
+  company               String
+  startDate             DateTime
+  endDate               DateTime
+  totalDays             Int
+  status                String    @default("pending")
+  appliedAt             DateTime  @default(now())
+  approvedBy            String?
+  approvedAt            DateTime?
+  rejectedBy            String?
+  rejectedAt            DateTime?
+  certificateFileName   String?
+  certificateFileSize   Int?
+  certificateFileType   String?
+  certificateUrl        String?
+  certificateUploadedAt DateTime?
+  certificateVerified   Boolean   @default(false)
+  certificateVerifiedBy String?
+  certificateVerifiedAt DateTime?
+
+  @@map("joining_1y")
+}
+
 model RepositoryFile {
   id          String   @id @default(cuid())
   title       String

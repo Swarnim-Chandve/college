@@ -120,7 +120,7 @@ export interface Company {
   location?: string
 }
 
-export type InternshipDuration = "2w" | "4w" | "6m"
+export type InternshipDuration = "2w" | "4w" | "6m" | "1y"
 
 export interface InternshipApplication {
   id?: string

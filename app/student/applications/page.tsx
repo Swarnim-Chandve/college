@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { getSession, fetchSession } from "@/lib/auth-new"
-import { listJoining2w, listJoining4w, listJoining6m } from "@/lib/server-actions"
+import { listJoining2w, listJoining4w, listJoining6m, listJoining1y } from "@/lib/server-actions"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
@@ -18,11 +18,12 @@ export default function MyApplicationsPage() {
     async function load() {
       const s = getSession() || (await fetchSession())
       if (s?.type === "student" && s.studentId) {
-        const [j2, j4, j6] = await Promise.all([listJoining2w(), listJoining4w(), listJoining6m()])
+        const [j2, j4, j6, j1] = await Promise.all([listJoining2w(), listJoining4w(), listJoining6m(), listJoining1y()])
         const mine = [
           ...j2.filter(a => a.studentId === s.studentId).map(a => ({ ...a, duration: '2w' })),
           ...j4.filter(a => a.studentId === s.studentId).map(a => ({ ...a, duration: '4w' })),
           ...j6.filter(a => a.studentId === s.studentId).map(a => ({ ...a, duration: '6m' })),
+          ...j1.filter(a => a.studentId === s.studentId).map(a => ({ ...a, duration: '1y' })),
         ]
         setApps(mine)
       }
@@ -34,11 +35,12 @@ export default function MyApplicationsPage() {
   async function refresh() {
     const s = getSession() || (await fetchSession())
     if (s?.type === "student" && s.studentId) {
-      const [j2, j4, j6] = await Promise.all([listJoining2w(), listJoining4w(), listJoining6m()])
+      const [j2, j4, j6, j1] = await Promise.all([listJoining2w(), listJoining4w(), listJoining6m(), listJoining1y()])
       const mine = [
         ...j2.filter(a => a.studentId === s.studentId).map(a => ({ ...a, duration: '2w' })),
         ...j4.filter(a => a.studentId === s.studentId).map(a => ({ ...a, duration: '4w' })),
         ...j6.filter(a => a.studentId === s.studentId).map(a => ({ ...a, duration: '6m' })),
+        ...j1.filter(a => a.studentId === s.studentId).map(a => ({ ...a, duration: '1y' })),
       ]
       setApps(mine)
     }
@@ -82,7 +84,7 @@ export default function MyApplicationsPage() {
                 {apps.map((a) => (
                   <TableRow key={a.id}>
                     <TableCell>{a.company}</TableCell>
-                    <TableCell>{a.duration === "2w" ? "2 Weeks" : a.duration === "4w" ? "4 Weeks" : "6 Months"}</TableCell>
+                    <TableCell>{a.duration === "2w" ? "2 Weeks" : a.duration === "4w" ? "4 Weeks" : a.duration === "6m" ? "6 Months" : "1 Year"}</TableCell>
                     <TableCell>{fmtDate(a.startDate)}</TableCell>
                     <TableCell>{fmtDate(a.endDate)}</TableCell>
                     <TableCell className="capitalize">{a.status.replaceAll("_", " ")}</TableCell>

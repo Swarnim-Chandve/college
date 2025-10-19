@@ -817,6 +817,31 @@ export async function createJoining6m(data: {
   }
 }
 
+export async function createJoining1y(data: {
+  studentId: string
+  company: string
+  startDate: Date
+  endDate: Date
+  totalDays: number
+  status?: string
+}) {
+  try {
+    return await prisma.joining1y.create({
+      data: {
+        studentId: data.studentId,
+        company: data.company,
+        startDate: data.startDate,
+        endDate: data.endDate,
+        totalDays: data.totalDays,
+        status: data.status || 'pending'
+      }
+    })
+  } catch (error) {
+    console.error('Error creating 1y joining:', error)
+    throw new Error('Failed to create 1y joining')
+  }
+}
+
 export async function listJoining2w() {
   try {
     const applications = await prisma.joining2w.findMany({
@@ -891,6 +916,32 @@ export async function listJoining6m() {
     return applicationsWithProfiles
   } catch (error) {
     console.error('Error listing 6m joining:', error)
+    return []
+  }
+}
+
+export async function listJoining1y() {
+  try {
+    const applications = await prisma.joining1y.findMany({
+      orderBy: { appliedAt: 'desc' }
+    })
+    
+    // Fetch student profiles for each application
+    const applicationsWithProfiles = await Promise.all(
+      applications.map(async (app) => {
+        const profile = await prisma.stuProfile.findUnique({
+          where: { studentId: app.studentId }
+        })
+        return {
+          ...app,
+          profile
+        }
+      })
+    )
+    
+    return applicationsWithProfiles
+  } catch (error) {
+    console.error('Error listing 1y joining:', error)
     return []
   }
 }
@@ -1010,6 +1061,44 @@ export async function approveJoining6m(id: string, approverEmail: string, approv
   }
 }
 
+export async function approveJoining1y(id: string, approverEmail: string, approverRole: 'faculty' | 'coordinator' | 'dean' | 'admin') {
+  try {
+    const application = await prisma.joining1y.findUnique({ where: { id } })
+    if (!application) throw new Error('Application not found')
+
+    let newStatus = application.status
+    if (application.status === 'pending') {
+      if (approverRole === 'faculty') newStatus = 'approved_faculty'
+      else if (approverRole === 'coordinator') newStatus = 'approved_coordinator'
+      else if (approverRole === 'dean') newStatus = 'approved_dean'
+      else if (approverRole === 'admin') newStatus = 'approved'
+    } else if (application.status === 'approved_faculty') {
+      if (approverRole === 'coordinator') newStatus = 'approved_coordinator'
+      else if (approverRole === 'dean') newStatus = 'approved_dean'
+      else if (approverRole === 'admin') newStatus = 'approved'
+    } else if (application.status === 'approved_coordinator') {
+      if (approverRole === 'dean') newStatus = 'approved_dean'
+      else if (approverRole === 'admin') newStatus = 'approved'
+    } else if (application.status === 'approved_dean') {
+      if (approverRole === 'admin') newStatus = 'approved'
+    }
+
+    await prisma.joining1y.update({
+      where: { id },
+      data: {
+        status: newStatus,
+        approvedBy: approverEmail,
+        approvedAt: new Date()
+      }
+    })
+
+    return { success: true }
+  } catch (error) {
+    console.error('Error approving joining1y:', error)
+    throw error
+  }
+}
+
 export async function rejectJoining2w(id: string, rejectorEmail: string) {
   try {
     await prisma.joining2w.update({
@@ -1057,6 +1146,23 @@ export async function rejectJoining6m(id: string, rejectorEmail: string) {
     return { success: true }
   } catch (error) {
     console.error('Error rejecting joining6m:', error)
+    throw error
+  }
+}
+
+export async function rejectJoining1y(id: string, rejectorEmail: string) {
+  try {
+    await prisma.joining1y.update({
+      where: { id },
+      data: {
+        status: 'rejected',
+        rejectedBy: rejectorEmail,
+        rejectedAt: new Date()
+      }
+    })
+    return { success: true }
+  } catch (error) {
+    console.error('Error rejecting joining1y:', error)
     throw error
   }
 }

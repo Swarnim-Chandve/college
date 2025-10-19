@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react"
 import { getSession, fetchSession } from "@/lib/auth-new"
-import { getStudentProfileByStudentId, listJoining2w, listJoining4w, listJoining6m, upsertStudentProfile, findRollByStudentId } from "@/lib/server-actions"
+import { getStudentProfileByStudentId, listJoining2w, listJoining4w, listJoining6m, listJoining1y, upsertStudentProfile, findRollByStudentId } from "@/lib/server-actions"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { fmtDate } from "@/lib/date"
@@ -16,15 +16,17 @@ export default function StudentHomePage() {
   const prevStatusRef = useRef<Map<string, string>>(new Map())
 
   async function loadStudentApps(studentId: string) {
-    const [joining2w, joining4w, joining6m] = await Promise.all([
+    const [joining2w, joining4w, joining6m, joining1y] = await Promise.all([
       listJoining2w(),
       listJoining4w(),
-      listJoining6m()
+      listJoining6m(),
+      listJoining1y()
     ])
     const studentApps = [
       ...joining2w.filter(app => app.studentId === studentId).map(app => ({ ...app, duration: '2w' })),
       ...joining4w.filter(app => app.studentId === studentId).map(app => ({ ...app, duration: '4w' })),
-      ...joining6m.filter(app => app.studentId === studentId).map(app => ({ ...app, duration: '6m' }))
+      ...joining6m.filter(app => app.studentId === studentId).map(app => ({ ...app, duration: '6m' })),
+      ...joining1y.filter(app => app.studentId === studentId).map(app => ({ ...app, duration: '1y' }))
     ]
     return studentApps
   }
@@ -172,7 +174,7 @@ export default function StudentHomePage() {
                   <TableRow key={a.id}>
                     <TableCell>{a.company}</TableCell>
                     <TableCell>
-                      {a.duration === "2w" ? "2 Weeks" : a.duration === "4w" ? "4 Weeks" : "6 Months"}
+                      {a.duration === "2w" ? "2 Weeks" : a.duration === "4w" ? "4 Weeks" : a.duration === "6m" ? "6 Months" : "1 Year"}
                     </TableCell>
                     <TableCell>{fmtDate(a.startDate)}</TableCell>
                     <TableCell>{fmtDate(a.endDate)}</TableCell>

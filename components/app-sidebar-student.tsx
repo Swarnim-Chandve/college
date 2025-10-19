@@ -117,6 +117,14 @@ export function StudentSidebar() {
                       </Link>
                     </SidebarMenuSubButton>
                   </SidebarMenuSubItem>
+                  <SidebarMenuSubItem>
+                    <SidebarMenuSubButton asChild isActive={menuActive("/student/internship/1y")}>
+                      <Link href="/student/internship/1y">
+                        <CalendarCheck />
+                        <span>1 Year</span>
+                      </Link>
+                    </SidebarMenuSubButton>
+                  </SidebarMenuSubItem>
                 </SidebarMenuSub>
               </SidebarMenuItem>
               <SidebarMenuItem>

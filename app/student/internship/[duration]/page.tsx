@@ -11,6 +11,7 @@ import {
   createJoining2w,
   createJoining4w,
   createJoining6m,
+  createJoining1y,
   upsertStudentProfile,
   findRollByStudentId,
 } from "@/lib/server-actions"
@@ -27,12 +28,13 @@ const durationDays: Record<string, number> = {
   "2w": 14,
   "4w": 28,
   "6m": 180, // approx for validation
+  "1y": 365, // approx for validation
 }
 
 export default function InternshipFormPage() {
   const params = useParams<{ duration: string }>()
   const { toast } = useToast()
-  const duration = params.duration as "2w" | "4w" | "6m"
+  const duration = params.duration as "2w" | "4w" | "6m" | "1y"
   const [profile, setProfile] = useState<any>(null)
   const [loading, setLoading] = useState(false)
   const [searching, setSearching] = useState(false)
@@ -164,6 +166,15 @@ export default function InternshipFormPage() {
         })
       } else if (duration === "6m") {
         await createJoining6m({
+          studentId: profile.studentId,
+          company: company.name,
+          startDate: new Date(toISOFromInput(from)),
+          endDate: new Date(toISOFromInput(to)),
+          totalDays,
+          status: "pending",
+        })
+      } else if (duration === "1y") {
+        await createJoining1y({
           studentId: profile.studentId,
           company: company.name,
           startDate: new Date(toISOFromInput(from)),
@@ -346,7 +357,7 @@ export default function InternshipFormPage() {
               </div>
             </div>
             <p className="text-xs text-muted-foreground">
-              Required days: {duration === "2w" ? "14" : duration === "4w" ? "28" : "180 (approx)"}.
+              Required days: {duration === "2w" ? "14" : duration === "4w" ? "28" : duration === "6m" ? "180 (approx)" : "365 (approx)"}.
             </p>
           </div>
 

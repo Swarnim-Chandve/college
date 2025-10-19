@@ -10,6 +10,7 @@ import {
   listJoining2w,
   listJoining4w,
   listJoining6m,
+  listJoining1y,
   updateInternshipApplicationStatus,
   approveInternshipApplication,
   rejectInternshipApplication,
@@ -18,9 +19,11 @@ import {
   approveJoining2w,
   approveJoining4w,
   approveJoining6m,
+  approveJoining1y,
   rejectJoining2w,
   rejectJoining4w,
-  rejectJoining6m
+  rejectJoining6m,
+  rejectJoining1y
 } from "@/lib/server-actions"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -119,17 +122,19 @@ function ApprovalsTable() {
 
   async function loadApplications() {
     // Load applications from joining tables only (no more main table)
-    const [joining2w, joining4w, joining6m] = await Promise.all([
+    const [joining2w, joining4w, joining6m, joining1y] = await Promise.all([
       listJoining2w(),
       listJoining4w(),
-      listJoining6m()
+      listJoining6m(),
+      listJoining1y()
     ])
     
     // Combine all applications with their source table
     const allApplications = [
       ...joining2w.map(app => ({ ...app, source: '2w', duration: '2w' })),
       ...joining4w.map(app => ({ ...app, source: '4w', duration: '4w' })),
-      ...joining6m.map(app => ({ ...app, source: '6m', duration: '6m' }))
+      ...joining6m.map(app => ({ ...app, source: '6m', duration: '6m' })),
+      ...joining1y.map(app => ({ ...app, source: '1y', duration: '1y' }))
     ]
     
     setRows(allApplications)
@@ -167,6 +172,8 @@ function ApprovalsTable() {
         await approveJoining4w(id, session.email, role as any)
       } else if (source === '6m') {
         await approveJoining6m(id, session.email, role as any)
+      } else if (source === '1y') {
+        await approveJoining1y(id, session.email, role as any)
       } else {
         await approveInternshipApplication(id, session.email, role as any)
       }
@@ -186,6 +193,8 @@ function ApprovalsTable() {
         await rejectJoining4w(id, session.email)
       } else if (source === '6m') {
         await rejectJoining6m(id, session.email)
+      } else if (source === '1y') {
+        await rejectJoining1y(id, session.email)
       } else {
         await rejectInternshipApplication(id, session.email)
       }
@@ -272,6 +281,7 @@ function ApprovalsTable() {
               <option value="2w">2 Weeks</option>
               <option value="4w">4 Weeks</option>
               <option value="6m">6 Months</option>
+              <option value="1y">1 Year</option>
             </select>
           </div>
           <div className="flex items-center gap-2">
@@ -372,7 +382,7 @@ function ApprovalsTable() {
                   <TableCell>{r.profile?.email || '-'}</TableCell>
                   <TableCell>{r.company}</TableCell>
                   <TableCell>
-                    {r.duration === "2w" ? "2 Weeks" : r.duration === "4w" ? "4 Weeks" : "6 Months"}
+                    {r.duration === "2w" ? "2 Weeks" : r.duration === "4w" ? "4 Weeks" : r.duration === "6m" ? "6 Months" : "1 Year"}
                   </TableCell>
                   <TableCell>{fmtDate(r.startDate)}</TableCell>
                   <TableCell>{fmtDate(r.endDate)}</TableCell>
@@ -423,6 +433,380 @@ function ApprovalsTable() {
         </div>
       </CardContent>
     </Card>
+  )
+}
+
+function ReportsTable() {
+  const [session, setSession] = useState<any>(null)
+  const [rows, setRows] = useState<any[]>([])
+  const [search, setSearch] = useState("")
+  const [durationFilter, setDurationFilter] = useState<"all" | "2w" | "4w" | "6m" | "1y">("all")
+  const [statusFilter, setStatusFilter] = useState<"all" | "pending" | "approved" | "rejected">("all")
+  const [filters, setFilters] = useState({ 
+    session: "", 
+    semester: "", 
+    branch: "", 
+    degree: "" 
+  })
+
+  useEffect(() => {
+    async function loadSession() {
+      const s = await fetchSession()
+      setSession(s)
+    }
+    loadSession()
+    loadReports()
+  }, [])
+
+  async function loadReports() {
+    // Load reports from joining tables
+    const [joining2w, joining4w, joining6m, joining1y] = await Promise.all([
+      listJoining2w(),
+      listJoining4w(),
+      listJoining6m(),
+      listJoining1y()
+    ])
+    
+    // Combine all reports with their source table
+    const allReports = [
+      ...joining2w.map(app => ({ ...app, source: '2w', duration: '2w' })),
+      ...joining4w.map(app => ({ ...app, source: '4w', duration: '4w' })),
+      ...joining6m.map(app => ({ ...app, source: '6m', duration: '6m' })),
+      ...joining1y.map(app => ({ ...app, source: '1y', duration: '1y' }))
+    ]
+    
+    setRows(allReports)
+  }
+
+  function getStatusDisplay(status: string) {
+    switch (status) {
+      case "pending": return "Pending"
+      case "approved_faculty": return "Approved by Faculty"
+      case "approved_coordinator": return "Approved by Coordinator"
+      case "approved": return "Fully Approved"
+      case "rejected": return "Rejected"
+      default: return status
+    }
+  }
+
+  const filtered = rows.filter((r) => {
+    if (durationFilter !== "all" && r.duration !== durationFilter) return false
+    if (statusFilter === "pending" && r.status !== "pending") return false
+    if (statusFilter === "approved" && !r.status.includes("approved")) return false
+    if (statusFilter === "rejected" && r.status !== "rejected") return false
+    if (filters.session && r.profile?.year !== filters.session) return false
+    if (filters.semester && r.profile?.semester?.toString() !== filters.semester) return false
+    if (filters.branch && r.profile?.branch !== filters.branch) return false
+    if (filters.degree && r.profile?.btype !== filters.degree) return false
+    if (search) {
+      const s = search.toLowerCase()
+      const hay = [r.studentId, r.company, r.profile?.name || ''].join(" ").toLowerCase()
+      if (!hay.includes(s)) return false
+    }
+    return true
+  })
+
+  // Calculate statistics
+  const stats = {
+    total: rows.length,
+    pending: rows.filter(r => r.status === "pending").length,
+    approved: rows.filter(r => r.status.includes("approved")).length,
+    rejected: rows.filter(r => r.status === "rejected").length,
+    byDuration: {
+      "2w": rows.filter(r => r.duration === "2w").length,
+      "4w": rows.filter(r => r.duration === "4w").length,
+      "6m": rows.filter(r => r.duration === "6m").length,
+      "1y": rows.filter(r => r.duration === "1y").length
+    },
+    byBranch: rows.reduce((acc, r) => {
+      const branch = r.profile?.branch || 'Unknown'
+      acc[branch] = (acc[branch] || 0) + 1
+      return acc
+    }, {} as Record<string, number>)
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Statistics Cards */}
+      <div className="grid gap-4 md:grid-cols-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Applications</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-4xl font-black">{stats.total}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Pending</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-4xl font-black text-yellow-600">{stats.pending}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Approved</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-4xl font-black text-green-600">{stats.approved}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Rejected</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-4xl font-black text-red-600">{stats.rejected}</div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Duration Statistics */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Applications by Duration</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-4 md:grid-cols-4">
+            <div className="text-center">
+              <div className="text-4xl font-black text-blue-600">{stats.byDuration["2w"]}</div>
+              <div className="text-sm text-muted-foreground">2 Weeks</div>
+            </div>
+            <div className="text-center">
+              <div className="text-4xl font-black text-purple-600">{stats.byDuration["4w"]}</div>
+              <div className="text-sm text-muted-foreground">4 Weeks</div>
+            </div>
+            <div className="text-center">
+              <div className="text-4xl font-black text-orange-600">{stats.byDuration["6m"]}</div>
+              <div className="text-sm text-muted-foreground">6 Months</div>
+            </div>
+            <div className="text-center">
+              <div className="text-4xl font-black text-green-600">{stats.byDuration["1y"]}</div>
+              <div className="text-sm text-muted-foreground">1 Year</div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Branch Statistics */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Applications by Branch</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {Object.entries(stats.byBranch)
+              .sort(([,a], [,b]) => (b as number) - (a as number)) // Sort by count descending
+              .map(([branch, count]) => (
+                <div key={branch} className="text-center">
+                  <div className="text-4xl font-black text-indigo-600">{count as number}</div>
+                  <div className="text-sm text-muted-foreground">{branch}</div>
+                </div>
+              ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Reports Table */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Detailed Reports</CardTitle>
+          <div className="text-sm text-muted-foreground">
+            Showing {filtered.length} of {rows.length} applications
+            {filtered.length !== rows.length && (
+              <span className="ml-2 text-blue-600">
+                (Filtered by: {[
+                  durationFilter !== "all" && `${durationFilter === "2w" ? "2 Weeks" : durationFilter === "4w" ? "4 Weeks" : durationFilter === "6m" ? "6 Months" : "1 Year"}`,
+                  statusFilter !== "all" && `${statusFilter.charAt(0).toUpperCase() + statusFilter.slice(1)}`,
+                  filters.session && `Session: ${filters.session}`,
+                  filters.semester && `Semester: ${filters.semester}`,
+                  filters.branch && `Branch: ${filters.branch}`,
+                  filters.degree && `Degree: ${filters.degree}`,
+                  search && `Search: "${search}"`
+                ].filter(Boolean).join(", ")})
+              </span>
+            )}
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="flex flex-wrap gap-2">
+            <Button size="sm" variant={durationFilter === "all" ? "default" : "outline"} onClick={() => setDurationFilter("all")}>
+              All Durations
+            </Button>
+            <Button size="sm" variant={durationFilter === "2w" ? "default" : "outline"} onClick={() => setDurationFilter("2w")}>
+              2 Weeks
+            </Button>
+            <Button size="sm" variant={durationFilter === "4w" ? "default" : "outline"} onClick={() => setDurationFilter("4w")}>
+              4 Weeks
+            </Button>
+            <Button size="sm" variant={durationFilter === "6m" ? "default" : "outline"} onClick={() => setDurationFilter("6m")}>
+              6 Months
+            </Button>
+            <Button size="sm" variant={durationFilter === "1y" ? "default" : "outline"} onClick={() => setDurationFilter("1y")}>
+              1 Year
+            </Button>
+            {(durationFilter !== "all" || statusFilter !== "all" || filters.session || filters.semester || filters.branch || filters.degree || search) && (
+              <Button size="sm" variant="secondary" onClick={() => {
+                setDurationFilter("all")
+                setStatusFilter("all")
+                setFilters({ session: "", semester: "", branch: "", degree: "" })
+                setSearch("")
+              }}>
+                Clear All Filters
+              </Button>
+            )}
+          </div>
+          
+          <div className="flex flex-wrap gap-2">
+            <Button size="sm" variant={statusFilter === "all" ? "default" : "outline"} onClick={() => setStatusFilter("all")}>
+              All Status
+            </Button>
+            <Button size="sm" variant={statusFilter === "pending" ? "default" : "outline"} onClick={() => setStatusFilter("pending")}>
+              Pending
+            </Button>
+            <Button size="sm" variant={statusFilter === "approved" ? "default" : "outline"} onClick={() => setStatusFilter("approved")}>
+              Approved
+            </Button>
+            <Button size="sm" variant={statusFilter === "rejected" ? "default" : "outline"} onClick={() => setStatusFilter("rejected")}>
+              Rejected
+            </Button>
+          </div>
+
+          <div className="grid gap-2 md:grid-cols-5">
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground">Session</span>
+              <select
+                className="h-8 rounded border bg-background px-2 text-sm"
+                value={filters.session}
+                onChange={(e) => setFilters((f) => ({ ...f, session: e.target.value }))}
+              >
+                <option value="">All Sessions</option>
+                {Array.from(new Set(rows.map(r => r.profile?.year).filter(Boolean))).map(year => (
+                  <option key={year} value={year}>{year}</option>
+                ))}
+              </select>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground">Semester</span>
+              <select
+                className="h-8 rounded border bg-background px-2 text-sm"
+                value={filters.semester}
+                onChange={(e) => setFilters((f) => ({ ...f, semester: e.target.value }))}
+              >
+                <option value="">All Semesters</option>
+                {Array.from(new Set(rows.map(r => r.profile?.semester).filter(Boolean))).sort().map(sem => (
+                  <option key={sem} value={sem}>{sem}</option>
+                ))}
+              </select>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground">Branch</span>
+              <select
+                className="h-8 rounded border bg-background px-2 text-sm"
+                value={filters.branch}
+                onChange={(e) => setFilters((f) => ({ ...f, branch: e.target.value }))}
+              >
+                <option value="">All Branches</option>
+                {Array.from(new Set(rows.map(r => r.profile?.branch).filter(Boolean))).map(branch => (
+                  <option key={branch} value={branch}>{branch}</option>
+                ))}
+              </select>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground">UG/PG</span>
+              <select
+                className="h-8 rounded border bg-background px-2 text-sm"
+                value={filters.degree}
+                onChange={(e) => setFilters((f) => ({ ...f, degree: e.target.value }))}
+              >
+                <option value="">All Degrees</option>
+                {Array.from(new Set(rows.map(r => r.profile?.btype).filter(Boolean))).map(degree => (
+                  <option key={degree} value={degree}>{degree}</option>
+                ))}
+              </select>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground">Search</span>
+              <input
+                className="h-8 w-full rounded border bg-background px-2 text-sm"
+                placeholder="Name / ID / Company"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <div className="overflow-x-auto rounded-md border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Student ID</TableHead>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Roll No</TableHead>
+                  <TableHead>Branch</TableHead>
+                  <TableHead>Company</TableHead>
+                  <TableHead>Duration</TableHead>
+                  <TableHead>From</TableHead>
+                  <TableHead>To</TableHead>
+                  <TableHead>Total Days</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Certificate</TableHead>
+                  <TableHead>Approved By</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filtered.map((r) => (
+                  <TableRow key={r.id}>
+                    <TableCell>{r.studentId}</TableCell>
+                    <TableCell>{r.profile?.name || '-'}</TableCell>
+                    <TableCell>{r.profile?.rollno || '-'}</TableCell>
+                    <TableCell>{r.profile?.branch || '-'}</TableCell>
+                    <TableCell>{r.company}</TableCell>
+                    <TableCell>
+                      {r.duration === "2w" ? "2 Weeks" : r.duration === "4w" ? "4 Weeks" : r.duration === "6m" ? "6 Months" : "1 Year"}
+                    </TableCell>
+                    <TableCell>{fmtDate(r.startDate)}</TableCell>
+                    <TableCell>{fmtDate(r.endDate)}</TableCell>
+                    <TableCell>{r.totalDays}</TableCell>
+                    <TableCell className="capitalize">
+                      {getStatusDisplay(r.status)}
+                      {r.certificateVerified && (
+                        <div className="text-xs text-green-600">✓ Verified</div>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {r.certificateFileName ? (
+                        <a className="underline text-blue-600" href={r.certificateUrl} target="_blank" rel="noreferrer">
+                          {r.certificateFileName}
+                        </a>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">Not uploaded</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <div className="text-xs text-muted-foreground">
+                        {r.approvedBy && <div>✓ {r.approvedBy}</div>}
+                        {r.rejectedBy && <div>✗ {r.rejectedBy}</div>}
+                        {!r.approvedBy && !r.rejectedBy && <div>-</div>}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+                {filtered.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={12} className="text-center text-sm text-muted-foreground">
+                      No reports found matching the criteria.
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   )
 }
 
@@ -540,6 +924,7 @@ export default function FacultyPage() {
 
       {tab === "students" && <StudentsTable />}
       {tab === "approvals" && <ApprovalsTable />}
+      {tab === "reports" && <ReportsTable />}
       {tab === "admin" && role === "admin" && <AdminPanel />}
 
       {tab === "home" && (
@@ -553,6 +938,9 @@ export default function FacultyPage() {
             </Button>
             <Button asChild variant="outline">
               <a href="/faculty?tab=approvals">Review Applications</a>
+            </Button>
+            <Button asChild variant="secondary">
+              <a href="/faculty?tab=reports">View Reports</a>
             </Button>
             {role === "admin" && (
               <Button asChild variant="secondary">
