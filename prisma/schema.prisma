@@ -138,6 +138,7 @@ model Joining2w {
   id                    String    @id @default(cuid())
   studentId             String
   company               String
+  internshipRole        String?
   startDate             DateTime
   endDate               DateTime
   totalDays             Int
@@ -163,6 +164,7 @@ model Joining4w {
   id                    String    @id @default(cuid())
   studentId             String
   company               String
+  internshipRole        String?
   startDate             DateTime
   endDate               DateTime
   totalDays             Int
@@ -188,6 +190,7 @@ model Joining6m {
   id                    String    @id @default(cuid())
   studentId             String
   company               String
+  internshipRole        String?
   startDate             DateTime
   endDate               DateTime
   totalDays             Int
@@ -213,6 +216,7 @@ model Joining1y {
   id                    String    @id @default(cuid())
   studentId             String
   company               String
+  internshipRole        String?
   startDate             DateTime
   endDate               DateTime
   totalDays             Int
@@ -232,6 +236,33 @@ model Joining1y {
   certificateVerifiedAt DateTime?
 
   @@map("joining_1y")
+}
+
+model CompanySubmission {
+  id                    String    @id @default(cuid())
+  studentId             String
+  companyName           String
+  industry              String
+  location              String
+  duration              String    // "2w", "4w", "6m", "1y"
+  website               String?
+  personName            String?
+  email                 String?
+  mobile                String?
+  address               String?
+  state                 String?
+  city                  String?
+  sector                String?
+  description           String?
+  status                String    @default("pending") // "pending", "approved", "rejected"
+  submittedAt           DateTime  @default(now())
+  approvedBy            String?
+  approvedAt            DateTime?
+  rejectedBy            String?
+  rejectedAt            DateTime?
+  rejectionReason       String?
+
+  @@map("company_submissions")
 }
 
 model RepositoryFile {

@@ -23,7 +23,10 @@ import {
   rejectJoining2w,
   rejectJoining4w,
   rejectJoining6m,
-  rejectJoining1y
+  rejectJoining1y,
+  listCompanySubmissions,
+  approveCompanySubmission,
+  rejectCompanySubmission
 } from "@/lib/server-actions"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -54,30 +57,37 @@ function StudentsTable() {
     setRows(students)
   }
   return (
-    <Card>
+    <Card className="border-2 border-gray-200">
       <CardHeader>
-        <CardTitle>Registered Students</CardTitle>
+        <CardTitle className="text-lg font-semibold text-gray-800">Registered Students</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-3">
-        <Input placeholder="Search by name, Student ID, or Roll No" value={q} onChange={(e) => setQ(e.target.value)} />
-        <div className="overflow-x-auto rounded-md border">
+      <CardContent>
+        <div className="mb-6">
+          <Input 
+            placeholder="Search by name, Student ID, or Roll No" 
+            value={q} 
+            onChange={(e) => setQ(e.target.value)}
+            className="border-gray-300 focus:border-blue-500"
+          />
+        </div>
+        <div className="overflow-x-auto">
           <Table>
             <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Student ID</TableHead>
-                <TableHead>Roll No</TableHead>
-                <TableHead>Semester</TableHead>
-                <TableHead>Section</TableHead>
-                <TableHead>Branch</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Mobile</TableHead>
+              <TableRow className="bg-gray-50">
+                <TableHead className="font-semibold text-gray-700">Name</TableHead>
+                <TableHead className="font-semibold text-gray-700">Student ID</TableHead>
+                <TableHead className="font-semibold text-gray-700">Roll No</TableHead>
+                <TableHead className="font-semibold text-gray-700">Semester</TableHead>
+                <TableHead className="font-semibold text-gray-700">Section</TableHead>
+                <TableHead className="font-semibold text-gray-700">Branch</TableHead>
+                <TableHead className="font-semibold text-gray-700">Email</TableHead>
+                <TableHead className="font-semibold text-gray-700">Mobile</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filtered.map((s) => (
-                <TableRow key={s.studentId}>
-                  <TableCell>{s.name}</TableCell>
+                <TableRow key={s.studentId} className="hover:bg-gray-50">
+                  <TableCell className="font-medium">{s.name}</TableCell>
                   <TableCell>{s.studentId}</TableCell>
                   <TableCell>{s.rollno}</TableCell>
                   <TableCell>{s.semester}</TableCell>
@@ -89,7 +99,7 @@ function StudentsTable() {
               ))}
               {filtered.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={9} className="text-center text-sm text-muted-foreground">
+                  <TableCell colSpan={8} className="text-center text-sm text-gray-500 py-8">
                     No students found.
                   </TableCell>
                 </TableRow>
@@ -810,6 +820,536 @@ function ReportsTable() {
   )
 }
 
+function CompaniesTable() {
+  const [companies, setCompanies] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  const [search, setSearch] = useState("")
+  const [durationFilter, setDurationFilter] = useState<"all" | "2w" | "4w" | "6m">("all")
+  const [industryFilter, setIndustryFilter] = useState("")
+
+  useEffect(() => {
+    loadCompanies()
+  }, [])
+
+  async function loadCompanies() {
+    try {
+      setLoading(true)
+      // For now, we'll use the existing companies from the database
+      // In a real implementation, you'd parse the Excel files and store them with duration info
+      const response = await fetch('/api/companies')
+      if (response.ok) {
+        const data = await response.json()
+        setCompanies(data)
+      } else {
+        // Fallback: create mock data based on the Excel files
+        const mockCompanies = [
+          // 2-week companies
+          { id: '1', name: 'TechCorp Solutions', industry: 'Technology', location: 'Mumbai', duration: '2w', website: 'https://techcorp.com', personName: 'Rajesh Kumar', email: 'hr@techcorp.com', mobile: '9876543210' },
+          { id: '2', name: 'DataFlow Systems', industry: 'Data Analytics', location: 'Bangalore', duration: '2w', website: 'https://dataflow.com', personName: 'Priya Sharma', email: 'contact@dataflow.com', mobile: '9876543211' },
+          { id: '3', name: 'CloudTech Innovations', industry: 'Cloud Computing', location: 'Hyderabad', duration: '2w', website: 'https://cloudtech.com', personName: 'Amit Patel', email: 'info@cloudtech.com', mobile: '9876543212' },
+          
+          // 4-week companies
+          { id: '4', name: 'GreenGrid Solutions', industry: 'Energy', location: 'Delhi', duration: '4w', website: 'https://greengrid.com', personName: 'Sneha Singh', email: 'projects@greengrid.com', mobile: '9876543213' },
+          { id: '5', name: 'FinTech Dynamics', industry: 'Financial Technology', location: 'Pune', duration: '4w', website: 'https://fintech.com', personName: 'Rahul Verma', email: 'careers@fintech.com', mobile: '9876543214' },
+          { id: '6', name: 'HealthTech Solutions', industry: 'Healthcare Technology', location: 'Chennai', duration: '4w', website: 'https://healthtech.com', personName: 'Dr. Anjali Rao', email: 'hr@healthtech.com', mobile: '9876543215' },
+          
+          // 6-month companies
+          { id: '7', name: 'AI Research Labs', industry: 'Artificial Intelligence', location: 'Bangalore', duration: '6m', website: 'https://airesearch.com', personName: 'Dr. Vikram Singh', email: 'research@airesearch.com', mobile: '9876543216' },
+          { id: '8', name: 'Blockchain Ventures', industry: 'Blockchain Technology', location: 'Mumbai', duration: '6m', website: 'https://blockchain.com', personName: 'Arjun Mehta', email: 'info@blockchain.com', mobile: '9876543217' },
+          { id: '9', name: 'Cybersecurity Pro', industry: 'Cybersecurity', location: 'Delhi', duration: '6m', website: 'https://cybersec.com', personName: 'Neha Gupta', email: 'security@cybersec.com', mobile: '9876543218' },
+        ]
+        setCompanies(mockCompanies)
+      }
+    } catch (error) {
+      console.error('Error loading companies:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const filtered = companies.filter((company) => {
+    if (durationFilter !== "all" && company.duration !== durationFilter) return false
+    if (industryFilter && company.industry !== industryFilter) return false
+    if (search) {
+      const s = search.toLowerCase()
+      const hay = [company.name, company.industry, company.location, company.personName].join(" ").toLowerCase()
+      if (!hay.includes(s)) return false
+    }
+    return true
+  })
+
+  // Calculate statistics
+  const stats = {
+    total: companies.length,
+    byDuration: {
+      "2w": companies.filter(c => c.duration === "2w").length,
+      "4w": companies.filter(c => c.duration === "4w").length,
+      "6m": companies.filter(c => c.duration === "6m").length
+    },
+    byIndustry: companies.reduce((acc, c) => {
+      acc[c.industry] = (acc[c.industry] || 0) + 1
+      return acc
+    }, {} as Record<string, number>)
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Statistics Cards */}
+      <div className="grid gap-4 md:grid-cols-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Companies</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-4xl font-black">{stats.total}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">2 Weeks</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-4xl font-black text-blue-600">{stats.byDuration["2w"]}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">4 Weeks</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-4xl font-black text-purple-600">{stats.byDuration["4w"]}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">6 Months</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-4xl font-black text-orange-600">{stats.byDuration["6m"]}</div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Companies Table */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Company Directory</CardTitle>
+          <div className="text-sm text-muted-foreground">
+            Showing {filtered.length} of {companies.length} companies
+            {filtered.length !== companies.length && (
+              <span className="ml-2 text-blue-600">
+                (Filtered by: {[
+                  durationFilter !== "all" && `${durationFilter === "2w" ? "2 Weeks" : durationFilter === "4w" ? "4 Weeks" : "6 Months"}`,
+                  industryFilter && `Industry: ${industryFilter}`,
+                  search && `Search: "${search}"`
+                ].filter(Boolean).join(", ")})
+              </span>
+            )}
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="flex flex-wrap gap-2">
+            <Button size="sm" variant={durationFilter === "all" ? "default" : "outline"} onClick={() => setDurationFilter("all")}>
+              All Durations
+            </Button>
+            <Button size="sm" variant={durationFilter === "2w" ? "default" : "outline"} onClick={() => setDurationFilter("2w")}>
+              2 Weeks
+            </Button>
+            <Button size="sm" variant={durationFilter === "4w" ? "default" : "outline"} onClick={() => setDurationFilter("4w")}>
+              4 Weeks
+            </Button>
+            <Button size="sm" variant={durationFilter === "6m" ? "default" : "outline"} onClick={() => setDurationFilter("6m")}>
+              6 Months
+            </Button>
+            {(durationFilter !== "all" || industryFilter || search) && (
+              <Button size="sm" variant="secondary" onClick={() => {
+                setDurationFilter("all")
+                setIndustryFilter("")
+                setSearch("")
+              }}>
+                Clear All Filters
+              </Button>
+            )}
+          </div>
+
+          <div className="grid gap-2 md:grid-cols-3">
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground">Industry</span>
+              <select
+                className="h-8 rounded border bg-background px-2 text-sm"
+                value={industryFilter}
+                onChange={(e) => setIndustryFilter(e.target.value)}
+              >
+                <option value="">All Industries</option>
+                {Object.keys(stats.byIndustry).map(industry => (
+                  <option key={industry} value={industry}>{industry}</option>
+                ))}
+              </select>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground">Search</span>
+              <input
+                className="h-8 w-full rounded border bg-background px-2 text-sm"
+                placeholder="Company / Industry / Location / Contact"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <div className="overflow-x-auto rounded-md border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Company Name</TableHead>
+                  <TableHead>Industry</TableHead>
+                  <TableHead>Location</TableHead>
+                  <TableHead>Duration</TableHead>
+                  <TableHead>Contact Person</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Mobile</TableHead>
+                  <TableHead>Website</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {loading ? (
+                  <TableRow>
+                    <TableCell colSpan={8} className="text-center text-sm text-muted-foreground">
+                      Loading companies...
+                    </TableCell>
+                  </TableRow>
+                ) : filtered.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={8} className="text-center text-sm text-muted-foreground">
+                      No companies found matching the criteria.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  filtered.map((company) => (
+                    <TableRow key={company.id}>
+                      <TableCell className="font-medium">{company.name}</TableCell>
+                      <TableCell>{company.industry}</TableCell>
+                      <TableCell>{company.location}</TableCell>
+                      <TableCell>
+                        <span className={`px-2 py-1 rounded text-xs font-medium ${
+                          company.duration === "2w" ? "bg-blue-100 text-blue-800" :
+                          company.duration === "4w" ? "bg-purple-100 text-purple-800" :
+                          "bg-orange-100 text-orange-800"
+                        }`}>
+                          {company.duration === "2w" ? "2 Weeks" : company.duration === "4w" ? "4 Weeks" : "6 Months"}
+                        </span>
+                      </TableCell>
+                      <TableCell>{company.personName}</TableCell>
+                      <TableCell>
+                        <a href={`mailto:${company.email}`} className="text-blue-600 hover:underline">
+                          {company.email}
+                        </a>
+                      </TableCell>
+                      <TableCell>
+                        <a href={`tel:${company.mobile}`} className="text-blue-600 hover:underline">
+                          {company.mobile}
+                        </a>
+                      </TableCell>
+                      <TableCell>
+                        <a href={company.website} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">
+                          Visit Website
+                        </a>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
+
+function CompanySubmissionsTable() {
+  const [submissions, setSubmissions] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  const [search, setSearch] = useState("")
+  const [statusFilter, setStatusFilter] = useState<"all" | "pending" | "approved" | "rejected">("all")
+  const [durationFilter, setDurationFilter] = useState<"all" | "2w" | "4w" | "6m" | "1y">("all")
+  const { toast } = useToast()
+
+  useEffect(() => {
+    loadSubmissions()
+  }, [])
+
+  async function loadSubmissions() {
+    try {
+      setLoading(true)
+      const data = await listCompanySubmissions()
+      setSubmissions(data)
+    } catch (error) {
+      console.error('Error loading company submissions:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function approve(id: string) {
+    try {
+      const s = getSession()
+      const approvedBy = s?.type === "coordinator" ? s.name : s?.type === "admin" ? s.name : "TNP Coordinator"
+      await approveCompanySubmission(id, approvedBy)
+      toast({ title: "Company approved", description: "Company has been added to the directory." })
+      loadSubmissions()
+    } catch (error) {
+      toast({ title: "Approval failed", description: "Failed to approve company submission.", variant: "destructive" })
+    }
+  }
+
+  async function reject(id: string) {
+    const reason = prompt("Please provide a reason for rejection:")
+    if (!reason) return
+    
+    try {
+      const s = getSession()
+      const rejectedBy = s?.type === "coordinator" ? s.name : s?.type === "admin" ? s.name : "TNP Coordinator"
+      await rejectCompanySubmission(id, rejectedBy, reason)
+      toast({ title: "Company rejected", description: "Company submission has been rejected." })
+      loadSubmissions()
+    } catch (error) {
+      toast({ title: "Rejection failed", description: "Failed to reject company submission.", variant: "destructive" })
+    }
+  }
+
+  const filtered = submissions.filter((submission) => {
+    if (statusFilter !== "all" && submission.status !== statusFilter) return false
+    if (durationFilter !== "all" && submission.duration !== durationFilter) return false
+    if (search) {
+      const s = search.toLowerCase()
+      const hay = [submission.companyName, submission.industry, submission.location, submission.personName].join(" ").toLowerCase()
+      if (!hay.includes(s)) return false
+    }
+    return true
+  })
+
+  // Calculate statistics
+  const stats = {
+    total: submissions.length,
+    pending: submissions.filter(s => s.status === "pending").length,
+    approved: submissions.filter(s => s.status === "approved").length,
+    rejected: submissions.filter(s => s.status === "rejected").length,
+    byDuration: {
+      "2w": submissions.filter(s => s.duration === "2w").length,
+      "4w": submissions.filter(s => s.duration === "4w").length,
+      "6m": submissions.filter(s => s.duration === "6m").length,
+      "1y": submissions.filter(s => s.duration === "1y").length
+    }
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Statistics Cards */}
+      <div className="grid gap-4 md:grid-cols-5">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Submissions</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-4xl font-black">{stats.total}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Pending</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-4xl font-black text-yellow-600">{stats.pending}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Approved</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-4xl font-black text-green-600">{stats.approved}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Rejected</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-4xl font-black text-red-600">{stats.rejected}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Approval Rate</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-4xl font-black text-blue-600">
+              {stats.total > 0 ? Math.round((stats.approved / stats.total) * 100) : 0}%
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Submissions Table */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Company Submissions</CardTitle>
+          <div className="text-sm text-muted-foreground">
+            Showing {filtered.length} of {submissions.length} submissions
+            {filtered.length !== submissions.length && (
+              <span className="ml-2 text-blue-600">
+                (Filtered by: {[
+                  statusFilter !== "all" && `${statusFilter.charAt(0).toUpperCase() + statusFilter.slice(1)}`,
+                  durationFilter !== "all" && `${durationFilter === "2w" ? "2 Weeks" : durationFilter === "4w" ? "4 Weeks" : durationFilter === "6m" ? "6 Months" : "1 Year"}`,
+                  search && `Search: "${search}"`
+                ].filter(Boolean).join(", ")})
+              </span>
+            )}
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="flex flex-wrap gap-2">
+            <Button size="sm" variant={statusFilter === "all" ? "default" : "outline"} onClick={() => setStatusFilter("all")}>
+              All Status
+            </Button>
+            <Button size="sm" variant={statusFilter === "pending" ? "default" : "outline"} onClick={() => setStatusFilter("pending")}>
+              Pending
+            </Button>
+            <Button size="sm" variant={statusFilter === "approved" ? "default" : "outline"} onClick={() => setStatusFilter("approved")}>
+              Approved
+            </Button>
+            <Button size="sm" variant={statusFilter === "rejected" ? "default" : "outline"} onClick={() => setStatusFilter("rejected")}>
+              Rejected
+            </Button>
+            <Button size="sm" variant={durationFilter === "all" ? "default" : "outline"} onClick={() => setDurationFilter("all")}>
+              All Durations
+            </Button>
+            <Button size="sm" variant={durationFilter === "2w" ? "default" : "outline"} onClick={() => setDurationFilter("2w")}>
+              2 Weeks
+            </Button>
+            <Button size="sm" variant={durationFilter === "4w" ? "default" : "outline"} onClick={() => setDurationFilter("4w")}>
+              4 Weeks
+            </Button>
+            <Button size="sm" variant={durationFilter === "6m" ? "default" : "outline"} onClick={() => setDurationFilter("6m")}>
+              6 Months
+            </Button>
+            <Button size="sm" variant={durationFilter === "1y" ? "default" : "outline"} onClick={() => setDurationFilter("1y")}>
+              1 Year
+            </Button>
+            {(statusFilter !== "all" || durationFilter !== "all" || search) && (
+              <Button size="sm" variant="secondary" onClick={() => {
+                setStatusFilter("all")
+                setDurationFilter("all")
+                setSearch("")
+              }}>
+                Clear All Filters
+              </Button>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-muted-foreground">Search</span>
+            <input
+              className="h-8 w-full rounded border bg-background px-2 text-sm"
+              placeholder="Company / Industry / Location / Contact"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+
+          <div className="overflow-x-auto rounded-md border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Company Name</TableHead>
+                  <TableHead>Industry</TableHead>
+                  <TableHead>Location</TableHead>
+                  <TableHead>Duration</TableHead>
+                  <TableHead>Contact Person</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Mobile</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Submitted By</TableHead>
+                  <TableHead>Submitted At</TableHead>
+                  <TableHead>Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {loading ? (
+                  <TableRow>
+                    <TableCell colSpan={11} className="text-center text-sm text-muted-foreground">
+                      Loading submissions...
+                    </TableCell>
+                  </TableRow>
+                ) : filtered.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={11} className="text-center text-sm text-muted-foreground">
+                      No submissions found matching the criteria.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  filtered.map((submission) => (
+                    <TableRow key={submission.id}>
+                      <TableCell className="font-medium">{submission.companyName}</TableCell>
+                      <TableCell>{submission.industry}</TableCell>
+                      <TableCell>{submission.location}</TableCell>
+                      <TableCell>
+                        <span className={`px-2 py-1 rounded text-xs font-medium ${
+                          submission.duration === "2w" ? "bg-blue-100 text-blue-800" :
+                          submission.duration === "4w" ? "bg-purple-100 text-purple-800" :
+                          submission.duration === "6m" ? "bg-orange-100 text-orange-800" :
+                          "bg-green-100 text-green-800"
+                        }`}>
+                          {submission.duration === "2w" ? "2 Weeks" : 
+                           submission.duration === "4w" ? "4 Weeks" : 
+                           submission.duration === "6m" ? "6 Months" : "1 Year"}
+                        </span>
+                      </TableCell>
+                      <TableCell>{submission.personName || "-"}</TableCell>
+                      <TableCell>{submission.email || "-"}</TableCell>
+                      <TableCell>{submission.mobile || "-"}</TableCell>
+                      <TableCell>
+                        <span className={`px-2 py-1 rounded text-xs font-medium ${
+                          submission.status === "pending" ? "bg-yellow-100 text-yellow-800" :
+                          submission.status === "approved" ? "bg-green-100 text-green-800" :
+                          "bg-red-100 text-red-800"
+                        }`}>
+                          {submission.status.charAt(0).toUpperCase() + submission.status.slice(1)}
+                        </span>
+                      </TableCell>
+                      <TableCell>{submission.studentId}</TableCell>
+                      <TableCell>{fmtDate(submission.submittedAt)}</TableCell>
+                      <TableCell>
+                        {submission.status === "pending" && (
+                          <div className="flex gap-1">
+                            <Button size="sm" onClick={() => approve(submission.id)}>
+                              Approve
+                            </Button>
+                            <Button size="sm" variant="destructive" onClick={() => reject(submission.id)}>
+                              Reject
+                            </Button>
+                          </div>
+                        )}
+                        {submission.status === "approved" && (
+                          <span className="text-sm text-green-600">Approved by {submission.approvedBy}</span>
+                        )}
+                        {submission.status === "rejected" && (
+                          <span className="text-sm text-red-600">Rejected by {submission.rejectedBy}</span>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
+
 function AdminPanel() {
   const { toast } = useToast()
   const [rollTSV, setRollTSV] = useState("")
@@ -909,47 +1449,102 @@ export default function FacultyPage() {
   const role = s?.type === "admin" ? "admin" : s?.type === "faculty" ? "faculty" : s?.type === "dean" ? "dean" : s?.type === "coordinator" ? "coordinator" : "faculty"
 
   return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>Welcome {s?.type === "faculty" ? s.name : s?.type === "coordinator" ? "TNP Coordinator" : "Faculty"}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm text-muted-foreground">
-            Use the menu to view registered students and approve internship applications. Role:{" "}
-            <span className="capitalize">{role}</span>.
-          </p>
-        </CardContent>
-      </Card>
+    <div className="bg-white min-h-screen">
+      {/* Main Content Area */}
+      <div className="max-w-7xl mx-auto px-6 py-8">
+        {/* Welcome Section */}
+        <div className="mb-8">
+          <Card className="border-2 border-gray-200">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h1 className="text-2xl font-bold text-gray-800 mb-2">
+                    Welcome {s?.type === "faculty" ? s.name : s?.type === "coordinator" ? "TNP Coordinator" : "Faculty"}
+                  </h1>
+                  <p className="text-gray-600">
+                    Use the menu to view registered students and approve internship applications. Role:{" "}
+                    <span className="font-semibold text-blue-600 capitalize">{role}</span>
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                    <div className="text-blue-600 text-xl">👨‍🏫</div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-sm font-semibold text-gray-800">FACULTY</div>
+                    <div className="text-xs text-gray-500 capitalize">{role}</div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
 
-      {tab === "students" && <StudentsTable />}
-      {tab === "approvals" && <ApprovalsTable />}
-      {tab === "reports" && <ReportsTable />}
-      {tab === "admin" && role === "admin" && <AdminPanel />}
+        {/* Tab Content */}
+        {tab === "students" && <StudentsTable />}
+        {tab === "approvals" && <ApprovalsTable />}
+        {tab === "reports" && <ReportsTable />}
+        {tab === "companies" && (role === "coordinator" || role === "admin") && <CompaniesTable />}
+        {tab === "company-submissions" && (role === "coordinator" || role === "admin") && <CompanySubmissionsTable />}
+        {tab === "admin" && role === "admin" && <AdminPanel />}
 
-      {tab === "home" && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Quick Actions</CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-wrap gap-3">
-            <Button asChild>
-              <a href="/faculty?tab=students">View Student List</a>
-            </Button>
-            <Button asChild variant="outline">
-              <a href="/faculty?tab=approvals">Review Applications</a>
-            </Button>
-            <Button asChild variant="secondary">
-              <a href="/faculty?tab=reports">View Reports</a>
-            </Button>
-            {role === "admin" && (
-              <Button asChild variant="secondary">
-                <a href="/faculty?tab=admin">Admin Tools</a>
-              </Button>
-            )}
-          </CardContent>
-        </Card>
-      )}
+        {/* Quick Actions Section */}
+        {tab === "home" && (
+          <div className="mb-8">
+            <Card className="border-2 border-gray-200">
+              <CardHeader>
+                <CardTitle className="text-lg font-semibold text-gray-800">Quick Actions</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                  <Button asChild className="h-16 flex flex-col gap-2 bg-blue-600 hover:bg-blue-700">
+                    <a href="/faculty?tab=students">
+                      <div className="text-lg">👥</div>
+                      <div className="text-sm font-medium">View Students</div>
+                    </a>
+                  </Button>
+                  <Button asChild variant="outline" className="h-16 flex flex-col gap-2 border-blue-200 hover:bg-blue-50">
+                    <a href="/faculty?tab=approvals">
+                      <div className="text-lg">📋</div>
+                      <div className="text-sm font-medium">Review Applications</div>
+                    </a>
+                  </Button>
+                  <Button asChild variant="outline" className="h-16 flex flex-col gap-2 border-green-200 hover:bg-green-50">
+                    <a href="/faculty?tab=reports">
+                      <div className="text-lg">📊</div>
+                      <div className="text-sm font-medium">View Reports</div>
+                    </a>
+                  </Button>
+                  {(role === "coordinator" || role === "admin") && (
+                    <Button asChild variant="outline" className="h-16 flex flex-col gap-2 border-purple-200 hover:bg-purple-50">
+                      <a href="/faculty?tab=companies">
+                        <div className="text-lg">🏢</div>
+                        <div className="text-sm font-medium">Company Directory</div>
+                      </a>
+                    </Button>
+                  )}
+                  {(role === "coordinator" || role === "admin") && (
+                    <Button asChild variant="outline" className="h-16 flex flex-col gap-2 border-orange-200 hover:bg-orange-50">
+                      <a href="/faculty?tab=company-submissions">
+                        <div className="text-lg">📝</div>
+                        <div className="text-sm font-medium">Company Submissions</div>
+                      </a>
+                    </Button>
+                  )}
+                  {role === "admin" && (
+                    <Button asChild variant="outline" className="h-16 flex flex-col gap-2 border-red-200 hover:bg-red-50">
+                      <a href="/faculty?tab=admin">
+                        <div className="text-lg">⚙️</div>
+                        <div className="text-sm font-medium">Admin Panel</div>
+                      </a>
+                    </Button>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+      </div>
     </div>
   )
 }

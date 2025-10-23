@@ -11,11 +11,11 @@ import { cn } from "@/lib/utils"
 function NavLinks() {
   return (
     <nav className="hidden items-center gap-6 md:flex">
-      <Link href="/" className="text-sm font-medium hover:underline">
+      <Link href="/" className="text-sm font-medium text-white hover:underline">
         Home
       </Link>
       <div className="relative group">
-        <button className="inline-flex items-center gap-1 text-sm font-medium">
+        <button className="inline-flex items-center gap-1 text-sm font-medium text-white">
           {"GHRCE Repository"}
           <ChevronDown className="h-4 w-4" />
         </button>
@@ -25,10 +25,10 @@ function NavLinks() {
           </Link>
         </div>
       </div>
-      <Link href="/register" className="text-sm font-medium hover:underline">
+      <Link href="/register" className="text-sm font-medium text-white hover:underline">
         Portal Registration
       </Link>
-      <Link href="/login" className="text-sm font-medium hover:underline">
+      <Link href="/login" className="text-sm font-medium text-white hover:underline">
         Login
       </Link>
     </nav>
@@ -43,49 +43,62 @@ export default function SiteHeader({ className = "" }: { className?: string }) {
     return () => window.removeEventListener("hashchange", onRoute)
   }, [])
   return (
-    <header className={cn("w-full border-b bg-background", className)}>
-      <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3">
-        <div className="flex items-center gap-4">
-          <img src="/generic-left-aligned-logo.png" alt="Raisoni mock logo left" className="h-11 w-11 rounded" />
-          <div className="hidden flex-col leading-tight md:flex">
-            <span className="text-base font-semibold">G H Raisoni College of Engineering</span>
-            <span className="text-xs text-muted-foreground">Internship Portal</span>
+    <div className="w-full">
+      {/* Header Section */}
+      <header className={cn("w-full bg-white border-4 border-blue-600", className)}>
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-8 py-6">
+          {/* Left Logo */}
+          <div className="flex items-center">
+            <img src="/logo.png" alt="G H Raisoni College Logo" className="h-20 w-auto border-0" />
+          </div>
+
+          {/* Right Logo */}
+          <div className="flex items-center">
+            <img src="/logo2.png" alt="Raisoni Education Logo" className="h-20 w-auto border-0" />
           </div>
         </div>
+        
+        {/* Gradient Separator */}
+        <div className="h-1 bg-gradient-to-r from-orange-500 to-purple-600"></div>
+      </header>
 
-        <NavLinks />
-
-        <div className="flex items-center gap-4">
-          <img src="/generic-tech-logo.png" alt="Raisoni mock logo right" className="h-11 w-11 rounded" />
-          <Sheet open={open} onOpenChange={setOpen}>
-            <SheetTrigger asChild>
-              <Button variant="outline" size="icon" className="md:hidden bg-transparent">
-                <Menu className="h-5 w-5" />
-              </Button>
-            </SheetTrigger>
-            <SheetContent side="right" className="w-72">
-              <SheetHeader>
-                <SheetTitle>{"GHRCE Portal"}</SheetTitle>
-              </SheetHeader>
-              <Separator className="my-3" />
-              <div className="grid gap-2">
-                <Link href="/" className="rounded-md px-3 py-2 text-sm hover:bg-muted">
-                  Home
-                </Link>
-                <Link href="/repository" className="rounded-md px-3 py-2 text-sm hover:bg-muted">
-                  Browse Repository
-                </Link>
-                <Link href="/register" className="rounded-md px-3 py-2 text-sm hover:bg-muted">
-                  Portal Registration
-                </Link>
-                <Link href="/login" className="rounded-md px-3 py-2 text-sm hover:bg-muted">
-                  Login
-                </Link>
-              </div>
-            </SheetContent>
-          </Sheet>
+      {/* Navigation Bar */}
+      <nav className="w-full bg-blue-600">
+        <div className="mx-auto max-w-7xl px-6 py-3">
+          <NavLinks />
+          
+          {/* Mobile Menu */}
+          <div className="md:hidden">
+            <Sheet open={open} onOpenChange={setOpen}>
+              <SheetTrigger asChild>
+                <Button variant="outline" size="icon" className="bg-transparent border-white text-white hover:bg-blue-700">
+                  <Menu className="h-5 w-5" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="right" className="w-72">
+                <SheetHeader>
+                  <SheetTitle>GHRCE Portal</SheetTitle>
+                </SheetHeader>
+                <Separator className="my-3" />
+                <div className="grid gap-2">
+                  <Link href="/" className="rounded-md px-3 py-2 text-sm hover:bg-muted">
+                    Home
+                  </Link>
+                  <Link href="/repository" className="rounded-md px-3 py-2 text-sm hover:bg-muted">
+                    Browse Repository
+                  </Link>
+                  <Link href="/register" className="rounded-md px-3 py-2 text-sm hover:bg-muted">
+                    Portal Registration
+                  </Link>
+                  <Link href="/login" className="rounded-md px-3 py-2 text-sm hover:bg-muted">
+                    Login
+                  </Link>
+                </div>
+              </SheetContent>
+            </Sheet>
+          </div>
         </div>
-      </div>
-    </header>
+      </nav>
+    </div>
   )
 }

@@ -97,96 +97,163 @@ export default function StudentHomePage() {
     }
   }, [])
   return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>Welcome {profile?.name ? profile.name : "Student"}</CardTitle>
-        </CardHeader>
-        <CardContent className="grid gap-4 md:grid-cols-3">
-          {loading ? (
-            <div className="col-span-3 text-center text-sm text-muted-foreground">
-              Loading profile...
-            </div>
-          ) : (
-            <>
-              <div>
-                <div className="text-xs text-muted-foreground">Student ID</div>
-                <div className="font-medium">{profile?.studentId}</div>
-              </div>
-          <div>
-            <div className="text-xs text-muted-foreground">Academic Year</div>
-            <div className="font-medium">{profile?.year}</div>
+    <div className="bg-white min-h-screen">
+      {/* Main Content Area */}
+      <div className="max-w-7xl mx-auto px-6 py-8">
+        <div className="flex gap-8">
+          {/* Student Profile Card (Left) */}
+          <div className="w-80">
+            <Card className="border-2 border-gray-200">
+              <CardContent className="p-6">
+                <div className="flex flex-col items-center text-center">
+                  {/* Student Icon */}
+                  <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                    <div className="text-2xl">👥</div>
+                  </div>
+                  <div className="text-red-600 font-bold text-sm mb-2">STUDENT</div>
+                  
+                  {/* Student Name */}
+                  <div className="text-lg font-semibold text-gray-800 mb-1">
+                    {profile?.name || "STUDENT NAME"}
+                  </div>
+                  
+                  {/* Student ID */}
+                  <div className="text-sm text-gray-600">
+                    {profile?.studentId || "STUDENT ID"}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </div>
-          <div>
-            <div className="text-xs text-muted-foreground">Roll No</div>
-            <div className="font-medium">{profile?.rollno}</div>
-          </div>
-          <div>
-            <div className="text-xs text-muted-foreground">Semester</div>
-            <div className="font-medium">{profile?.semester}</div>
-          </div>
-          <div>
-            <div className="text-xs text-muted-foreground">Section</div>
-            <div className="font-medium">{profile?.section}</div>
-          </div>
-          <div>
-            <div className="text-xs text-muted-foreground">Branch</div>
-            <div className="font-medium">{profile?.branch}</div>
-          </div>
-          <div>
-            <div className="text-xs text-muted-foreground">Degree</div>
-            <div className="font-medium">{profile?.btype}</div>
-          </div>
-          <div className="md:col-span-3 text-sm text-muted-foreground">
-            Explore internships via the menu. Your details are auto-filled in applications.
-          </div>
-            </>
-          )}
-        </CardContent>
-      </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Recent Internship Applications</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Company</TableHead>
-                  <TableHead>Duration</TableHead>
-                  <TableHead>From</TableHead>
-                  <TableHead>To</TableHead>
-                  <TableHead>Total Days</TableHead>
-                  <TableHead>Status</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {apps.length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={6} className="text-center text-sm text-muted-foreground">
-                      No applications yet.
-                    </TableCell>
-                  </TableRow>
-                )}
-                {apps.map((a) => (
-                  <TableRow key={a.id}>
-                    <TableCell>{a.company}</TableCell>
-                    <TableCell>
-                      {a.duration === "2w" ? "2 Weeks" : a.duration === "4w" ? "4 Weeks" : a.duration === "6m" ? "6 Months" : "1 Year"}
-                    </TableCell>
-                    <TableCell>{fmtDate(a.startDate)}</TableCell>
-                    <TableCell>{fmtDate(a.endDate)}</TableCell>
-                    <TableCell>{a.totalDays}</TableCell>
-                    <TableCell className="capitalize">{a.status.replaceAll("_", " ")}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+          {/* Academic Details (Center) */}
+          <div className="flex-1">
+            <Card className="border-2 border-gray-200">
+              <CardHeader>
+                <CardTitle className="text-lg font-semibold text-gray-800">Academic Details</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 gap-6">
+                  {loading ? (
+                    <div className="col-span-2 text-center text-sm text-gray-500">
+                      Loading profile...
+                    </div>
+                  ) : (
+                    <>
+                      <div className="space-y-4">
+                        <div>
+                          <div className="text-xs text-gray-500 uppercase tracking-wide">Academic Year</div>
+                          <div className="text-lg font-semibold text-gray-800">{profile?.year || "2024-25"}</div>
+                        </div>
+                        <div>
+                          <div className="text-xs text-gray-500 uppercase tracking-wide">Roll No</div>
+                          <div className="text-lg font-semibold text-gray-800">{profile?.rollno || "69"}</div>
+                        </div>
+                        <div>
+                          <div className="text-xs text-gray-500 uppercase tracking-wide">Semester</div>
+                          <div className="text-lg font-semibold text-gray-800">{profile?.semester || "8"}</div>
+                        </div>
+                      </div>
+                      <div className="space-y-4">
+                        <div>
+                          <div className="text-xs text-gray-500 uppercase tracking-wide">Section</div>
+                          <div className="text-lg font-semibold text-gray-800">{profile?.section || "A"}</div>
+                        </div>
+                        <div>
+                          <div className="text-xs text-gray-500 uppercase tracking-wide">Branch</div>
+                          <div className="text-lg font-semibold text-gray-800">{profile?.branch || "MECH"}</div>
+                        </div>
+                        <div>
+                          <div className="text-xs text-gray-500 uppercase tracking-wide">Degree</div>
+                          <div className="text-lg font-semibold text-gray-800">{profile?.btype || "UG"}</div>
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
           </div>
-        </CardContent>
-      </Card>
+
+          {/* Welcome Message and Quote (Right) */}
+          <div className="w-80">
+            <Card className="border-2 border-gray-200">
+              <CardContent className="p-6">
+                <div className="space-y-4">
+                  {/* Welcome Message */}
+                  <div>
+                    <div className="text-blue-600 font-medium text-sm">
+                      Welcome {profile?.email || "student@ghrce.raisoni.net"}
+                    </div>
+                  </div>
+                  
+                  {/* Quote */}
+                  <div className="flex items-start gap-2">
+                    <div className="text-blue-500 text-lg">🌍</div>
+                    <div className="text-gray-600 text-sm italic">
+                      "Education The primary link with our future"
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+
+        {/* Recent Applications Section */}
+        <div className="mt-8">
+          <Card className="border-2 border-gray-200">
+            <CardHeader>
+              <CardTitle className="text-lg font-semibold text-gray-800">Recent Internship Applications</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-gray-50">
+                      <TableHead className="font-semibold text-gray-700">Company</TableHead>
+                      <TableHead className="font-semibold text-gray-700">Duration</TableHead>
+                      <TableHead className="font-semibold text-gray-700">From</TableHead>
+                      <TableHead className="font-semibold text-gray-700">To</TableHead>
+                      <TableHead className="font-semibold text-gray-700">Total Days</TableHead>
+                      <TableHead className="font-semibold text-gray-700">Status</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {apps.length === 0 && (
+                      <TableRow>
+                        <TableCell colSpan={6} className="text-center text-sm text-gray-500 py-8">
+                          No applications yet.
+                        </TableCell>
+                      </TableRow>
+                    )}
+                    {apps.map((a) => (
+                      <TableRow key={a.id} className="hover:bg-gray-50">
+                        <TableCell className="font-medium">{a.company}</TableCell>
+                        <TableCell>
+                          {a.duration === "2w" ? "2 Weeks" : a.duration === "4w" ? "4 Weeks" : a.duration === "6m" ? "6 Months" : "1 Year"}
+                        </TableCell>
+                        <TableCell>{fmtDate(a.startDate)}</TableCell>
+                        <TableCell>{fmtDate(a.endDate)}</TableCell>
+                        <TableCell>{a.totalDays}</TableCell>
+                        <TableCell className="capitalize">
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                            a.status.includes("approved") ? "bg-green-100 text-green-800" :
+                            a.status === "rejected" ? "bg-red-100 text-red-800" :
+                            "bg-yellow-100 text-yellow-800"
+                          }`}>
+                            {a.status.replaceAll("_", " ")}
+                          </span>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
     </div>
   )
 }

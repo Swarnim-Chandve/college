@@ -745,6 +745,7 @@ export async function createStudentLogin(
 export async function createJoining2w(data: {
   studentId: string
   company: string
+  internshipRole?: string
   startDate: Date
   endDate: Date
   totalDays: number
@@ -755,6 +756,7 @@ export async function createJoining2w(data: {
       data: {
         studentId: data.studentId,
         company: data.company,
+        internshipRole: data.internshipRole,
         startDate: data.startDate,
         endDate: data.endDate,
         totalDays: data.totalDays,
@@ -770,6 +772,7 @@ export async function createJoining2w(data: {
 export async function createJoining4w(data: {
   studentId: string
   company: string
+  internshipRole?: string
   startDate: Date
   endDate: Date
   totalDays: number
@@ -780,6 +783,7 @@ export async function createJoining4w(data: {
       data: {
         studentId: data.studentId,
         company: data.company,
+        internshipRole: data.internshipRole,
         startDate: data.startDate,
         endDate: data.endDate,
         totalDays: data.totalDays,
@@ -795,24 +799,34 @@ export async function createJoining4w(data: {
 export async function createJoining6m(data: {
   studentId: string
   company: string
+  internshipRole?: string
   startDate: Date
   endDate: Date
   totalDays: number
   status?: string
 }) {
   try {
-    return await prisma.joining6m.create({
+    console.log('Creating 6m joining with data:', data)
+    const result = await prisma.joining6m.create({
       data: {
         studentId: data.studentId,
         company: data.company,
+        internshipRole: data.internshipRole,
         startDate: data.startDate,
         endDate: data.endDate,
         totalDays: data.totalDays,
         status: data.status || 'pending'
       }
     })
+    console.log('6m joining created successfully:', result)
+    return result
   } catch (error) {
     console.error('Error creating 6m joining:', error)
+    console.error('Error details:', {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      data: data
+    })
     throw new Error('Failed to create 6m joining')
   }
 }
@@ -820,6 +834,7 @@ export async function createJoining6m(data: {
 export async function createJoining1y(data: {
   studentId: string
   company: string
+  internshipRole?: string
   startDate: Date
   endDate: Date
   totalDays: number
@@ -830,6 +845,7 @@ export async function createJoining1y(data: {
       data: {
         studentId: data.studentId,
         company: data.company,
+        internshipRole: data.internshipRole,
         startDate: data.startDate,
         endDate: data.endDate,
         totalDays: data.totalDays,
@@ -1352,5 +1368,180 @@ export async function seedDatabase() {
   } catch (error) {
     console.error('Seeding failed:', error)
     throw error
+  }
+}
+
+// Company Submission Functions
+export async function createCompanySubmission(data: {
+  studentId: string
+  companyName: string
+  industry: string
+  location: string
+  duration: string
+  website?: string
+  personName?: string
+  email?: string
+  mobile?: string
+  address?: string
+  state?: string
+  city?: string
+  sector?: string
+  description?: string
+}) {
+  try {
+    console.log('Creating company submission with data:', data)
+    console.log('Prisma client available:', !!prisma)
+    console.log('Prisma client companySubmission:', !!prisma?.companySubmission)
+    
+    // Validate required fields
+    if (!data.studentId || !data.companyName || !data.industry || !data.location || !data.duration) {
+      throw new Error('Missing required fields: studentId, companyName, industry, location, or duration')
+    }
+    
+    // Create a fresh Prisma client instance for server actions
+    const { PrismaClient } = await import('@prisma/client')
+    const prismaClient = new PrismaClient()
+    
+    if (!prismaClient || !prismaClient.companySubmission) {
+      throw new Error('Prisma client not properly initialized')
+    }
+    
+    const result = await prismaClient.companySubmission.create({
+      data: {
+        studentId: data.studentId,
+        companyName: data.companyName,
+        industry: data.industry,
+        location: data.location,
+        duration: data.duration,
+        website: data.website || null,
+        personName: data.personName || null,
+        email: data.email || null,
+        mobile: data.mobile || null,
+        address: data.address || null,
+        state: data.state || null,
+        city: data.city || null,
+        sector: data.sector || null,
+        description: data.description || null,
+        status: 'pending'
+      }
+    })
+    
+    // Clean up the Prisma client
+    await prismaClient.$disconnect()
+    
+    console.log('Company submission created successfully:', result)
+    return result
+  } catch (error) {
+    console.error('Error creating company submission:', error)
+    console.error('Error details:', {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      data: data,
+      errorCode: (error as any)?.code,
+      errorMeta: (error as any)?.meta
+    })
+    
+    // Clean up Prisma client in case of error
+    try {
+      if (typeof prismaClient !== 'undefined' && prismaClient) {
+        await prismaClient.$disconnect()
+      }
+    } catch (disconnectError) {
+      console.error('Error disconnecting Prisma client:', disconnectError)
+    }
+    
+    // Return more specific error message
+    if (error instanceof Error) {
+      throw new Error(`Failed to create company submission: ${error.message}`)
+    } else {
+      throw new Error('Failed to create company submission: Unknown error')
+    }
+  }
+}
+
+export async function listCompanySubmissions() {
+  try {
+    return await prisma.companySubmission.findMany({
+      orderBy: { submittedAt: 'desc' }
+    })
+  } catch (error) {
+    console.error('Error listing company submissions:', error)
+    throw new Error('Failed to list company submissions')
+  }
+}
+
+export async function approveCompanySubmission(id: string, approvedBy: string) {
+  try {
+    const submission = await prisma.companySubmission.update({
+      where: { id },
+      data: {
+        status: 'approved',
+        approvedBy,
+        approvedAt: new Date()
+      }
+    })
+
+    // Add the approved company to the main companies table
+    await prisma.company.create({
+      data: {
+        name: submission.companyName,
+        industry: submission.industry,
+        location: submission.location,
+        duration: submission.duration,
+        website: submission.website || '',
+        personName: submission.personName || '',
+        email: submission.email || '',
+        mobile: submission.mobile || '',
+        address: submission.address || '',
+        state: submission.state || '',
+        city: submission.city || '',
+        sector: submission.sector || submission.industry,
+        description: submission.description || ''
+      }
+    })
+
+    return submission
+  } catch (error) {
+    console.error('Error approving company submission:', error)
+    throw new Error('Failed to approve company submission')
+  }
+}
+
+export async function rejectCompanySubmission(id: string, rejectedBy: string, rejectionReason?: string) {
+  try {
+    return await prisma.companySubmission.update({
+      where: { id },
+      data: {
+        status: 'rejected',
+        rejectedBy,
+        rejectedAt: new Date(),
+        rejectionReason
+      }
+    })
+  } catch (error) {
+    console.error('Error rejecting company submission:', error)
+    throw new Error('Failed to reject company submission')
+  }
+}
+
+export async function getCompaniesByDuration(duration: string, branch?: string) {
+  try {
+    const whereClause: any = { duration }
+    
+    // If branch is specified, filter by industry/sector that matches the branch
+    if (branch) {
+      whereClause.OR = [
+        { industry: { contains: branch, mode: 'insensitive' } },
+        { sector: { contains: branch, mode: 'insensitive' } }
+      ]
+    }
+    
+    return await prisma.company.findMany({
+      where: whereClause,
+      orderBy: { name: 'asc' }
+    })
+  } catch (error) {
+    console.error('Error getting companies by duration:', error)
+    throw new Error('Failed to get companies by duration')
   }
 }
