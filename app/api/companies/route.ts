@@ -40,6 +40,7 @@ export async function GET() {
       duration: company.duration,
       website: company.website && company.website !== 'NULL' && company.website !== 'NA' ? company.website : '',
       personName: company.personName || '',
+      designation: company.designation || '',
       email: company.email || '',
       mobile: company.mobile || '',
       address: company.address || '',

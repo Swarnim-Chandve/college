@@ -60,19 +60,9 @@ export default function LoginPage() {
     try {
       const result = await forgotPassword(studentEmail.trim())
       if (result.success) {
-        const pwd = result.password
-        const msg = pwd ? `New password: ${pwd}` : "Check your email for the new password."
         toast({ 
           title: "Password Reset", 
-          description: msg,
-          action: pwd ? (
-            <Button
-              size="sm"
-              onClick={() => navigator.clipboard.writeText(pwd)}
-            >
-              Copy
-            </Button>
-          ) : undefined
+          description: "Your new password has been sent to your email address. Please check your inbox."
         })
       } else {
         toast({ title: "Error", description: result.error || "Failed to reset password.", variant: "destructive" as any })
@@ -112,19 +102,9 @@ export default function LoginPage() {
     try {
       const result = await forgotPassword(facEmail.trim())
       if (result.success) {
-        const pwd = result.password
-        const msg = pwd ? `New password: ${pwd}` : "Check your email for the new password."
         toast({ 
           title: "Password Reset", 
-          description: msg,
-          action: pwd ? (
-            <Button
-              size="sm"
-              onClick={() => navigator.clipboard.writeText(pwd)}
-            >
-              Copy
-            </Button>
-          ) : undefined
+          description: "Your new password has been sent to your email address. Please check your inbox."
         })
       } else {
         toast({ title: "Error", description: result.error || "Failed to reset password.", variant: "destructive" as any })

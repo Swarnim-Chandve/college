@@ -100,54 +100,48 @@ export default function InternshipFormPage() {
         return company.duration === duration
       })
       
-      // Further filter by branch if available
-      const session = getSession()
-      const branch = session?.type === "student" ? profile?.branch : undefined
-      
+      // Don't filter by branch - show all companies for the duration
+      // Students can apply to any company regardless of their branch
       let finalCompanies = filteredCompanies
-      if (branch) {
-        // Filter by industry/sector that matches the branch
-        finalCompanies = filteredCompanies.filter(company => {
-          const industry = (company.industry || '').toLowerCase()
-          const sector = (company.sector || '').toLowerCase()
-          const branchLower = branch.toLowerCase()
-          
-          return industry.includes(branchLower) || 
-                 sector.includes(branchLower) ||
-                 branchLower.includes(industry) ||
-                 branchLower.includes(sector)
-        })
-      }
       
       const sorted = finalCompanies.sort((a, b) => a.name.localeCompare(b.name))
       setAllCompanies(sorted)
-      // Show only first 10 companies by default
-      setCompanies(sorted.slice(0, 10))
+      // Show first 20 companies by default
+      setCompanies(sorted.slice(0, 20))
     } catch (error) {
       console.error('Error loading companies:', error)
       // Fallback to database companies
       const base = await searchCompaniesByName("")
       const sorted = [...base].sort((a, b) => a.name.localeCompare(b.name))
       setAllCompanies(sorted)
-      // Show only first 10 companies by default
-      setCompanies(sorted.slice(0, 10))
+      // Show first 20 companies by default
+      setCompanies(sorted.slice(0, 20))
     }
   }
 
   // Live filter as user types
   useEffect(() => {
-    search()
-  }, [query])
+    const s = query.trim().toLowerCase()
+    if (!s) {
+      // When no search query, show first 20 companies
+      setCompanies(allCompanies.slice(0, 20))
+      return
+    }
+    // When searching, show all matching results
+    const filtered = allCompanies.filter((c) => c.name.toLowerCase().includes(s))
+    setCompanies(filtered)
+  }, [query, allCompanies])
 
   function search() {
     const s = query.trim().toLowerCase()
     if (!s) {
-      // When no search query, show only first 10 companies
-      setCompanies(allCompanies.slice(0, 10))
+      // When no search query, show first 20 companies (increased from 10)
+      setCompanies(allCompanies.slice(0, 20))
       return
     }
     // When searching, show all matching results
-    setCompanies(allCompanies.filter((c) => c.name.toLowerCase().includes(s)))
+    const filtered = allCompanies.filter((c) => c.name.toLowerCase().includes(s))
+    setCompanies(filtered)
   }
 
   function go() {
@@ -443,29 +437,41 @@ export default function InternshipFormPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {companies.map((c) => (
-                    <TableRow
-                      key={c.id}
-                      className={`cursor-pointer hover:bg-muted/50 transition-colors ${
-                        companyId === c.id ? 'bg-blue-50 border-l-4 border-l-blue-500' : ''
-                      }`}
-                      onClick={(e) => {
-                        e.preventDefault()
-                        e.stopPropagation()
-                        selectCompany(c.id)
-                      }}
-                    >
-                      <TableCell>{c.name}</TableCell>
-                      <TableCell>{c.address}</TableCell>
-                      <TableCell>{c.personName}</TableCell>
-                      <TableCell>{c.designation}</TableCell>
-                      <TableCell>{c.email}</TableCell>
-                      <TableCell>{c.mobile}</TableCell>
-                      <TableCell>{c.state}</TableCell>
-                      <TableCell>{c.city}</TableCell>
-                      <TableCell>{c.sector}</TableCell>
+                  {companies.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+                        {allCompanies.length === 0 
+                          ? "No companies available for this internship duration." 
+                          : query.trim() 
+                            ? "No companies found matching your search." 
+                            : "Loading companies..."}
+                      </TableCell>
                     </TableRow>
-                  ))}
+                  ) : (
+                    companies.map((c) => (
+                      <TableRow
+                        key={c.id}
+                        className={`cursor-pointer hover:bg-muted/50 transition-colors ${
+                          companyId === c.id ? 'bg-blue-50 border-l-4 border-l-blue-500' : ''
+                        }`}
+                        onClick={(e) => {
+                          e.preventDefault()
+                          e.stopPropagation()
+                          selectCompany(c.id)
+                        }}
+                      >
+                        <TableCell className="font-medium">{c.name}</TableCell>
+                        <TableCell className="max-w-xs truncate">{c.address}</TableCell>
+                        <TableCell>{c.personName}</TableCell>
+                        <TableCell>{c.designation}</TableCell>
+                        <TableCell>{c.email}</TableCell>
+                        <TableCell>{c.mobile}</TableCell>
+                        <TableCell>{c.state}</TableCell>
+                        <TableCell>{c.city}</TableCell>
+                        <TableCell>{c.sector}</TableCell>
+                      </TableRow>
+                    ))
+                  )}
                 </TableBody>
               </Table>
             </div>

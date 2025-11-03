@@ -1,11 +1,42 @@
 import { NextResponse } from "next/server"
+import nodemailer from "nodemailer"
 
 export async function POST(req: Request) {
   const { to, subject, text, html } = await req.json()
+  const gmailUser = process.env.GMAIL_USER
+  const gmailPass = process.env.GMAIL_APP_PASS
+  
+  // Try Gmail first (new implementation)
+  if (gmailUser && gmailPass) {
+    try {
+      const transporter = nodemailer.createTransport({
+        service: "gmail",
+        auth: {
+          user: gmailUser,
+          pass: gmailPass,
+        },
+      })
+
+      const info = await transporter.sendMail({
+        from: `"GHRCE Portal" <${gmailUser}>`,
+        to,
+        subject,
+        text,
+        html,
+      })
+
+      return NextResponse.json({ ok: true, id: info.messageId })
+    } catch (e) {
+      // Fallback to Resend if Gmail fails
+      console.error('Gmail error:', e)
+    }
+  }
+
+  // Fallback to Resend (existing implementation)
   const apiKey = process.env.RESEND_API_KEY
   const fromAddress = process.env.RESEND_FROM || ""
-  if (!apiKey) return NextResponse.json({ error: "Missing RESEND_API_KEY" }, { status: 500 })
-  if (!fromAddress) return NextResponse.json({ error: "Missing RESEND_FROM (verified sender/domain)" }, { status: 500 })
+  if (!apiKey) return NextResponse.json({ error: "Missing email credentials" }, { status: 500 })
+  if (!fromAddress) return NextResponse.json({ error: "Missing RESEND_FROM" }, { status: 500 })
 
   try {
     const res = await fetch("https://api.resend.com/emails", {

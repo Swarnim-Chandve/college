@@ -2,7 +2,7 @@
 
 import { prisma } from '@/lib/prisma'
 import { hashPassword, verifyPassword, generatePassword } from '@/lib/auth-new'
-import { sendEmail } from '@/lib/email'
+import { sendEmailServer } from '@/lib/send-email-server'
 import { z } from 'zod'
 import { allow } from '@/lib/rate-limit'
 import { logInfo, logWarn, logError } from '@/lib/log'
@@ -221,9 +221,9 @@ export async function forgotPassword(email: string) {
       data: { password: hashedPassword }
     })
     
-    // Attempt email, but OK to skip in dev
+    // Send email with password
     try {
-      await sendEmail({
+      await sendEmailServer({
         to: email,
         subject: 'Your New GHRCE Password',
         html: `
@@ -233,11 +233,13 @@ export async function forgotPassword(email: string) {
           <p>Please log in with this new password and consider changing it for security.</p>
         `
       })
+      logInfo('email_sent', { to: email })
     } catch (e) {
       logWarn('email_send_failed', { to: email, error: String(e) })
+      return { success: false, error: 'Failed to send email. Please try again or contact support.' }
     }
     logInfo('forgot_success', { email })
-    return { success: true, password: newPassword }
+    return { success: true }
   } catch (error) {
     logError('forgot_error', { email, error: String(error) })
     return { success: false, error: 'Password reset failed' }

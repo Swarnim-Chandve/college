@@ -1,7 +1,6 @@
 import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
 import { prisma } from './prisma'
-import { sendEmail } from './email'
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production'
 
@@ -234,86 +233,6 @@ export async function loginUser(email: string, password: string): Promise<Sessio
   }
 }
 
-export async function registerStudent(data: {
-  email: string
-  name: string
-  studentId: string
-}): Promise<{ success: boolean; password?: string; error?: string }> {
-  try {
-    // Check if user already exists
-    const existing = await getUserByEmail(data.email)
-    if (existing) {
-      return { success: false, error: 'User already exists' }
-    }
-    
-    // Generate password
-    const password = generatePassword()
-    
-    // Create user
-    await createUser({
-      email: data.email,
-      password,
-      name: data.name,
-      role: 'student',
-      studentId: data.studentId
-    })
-    
-    // Send password via email
-    await sendEmail({
-      to: data.email,
-      subject: 'Your GHRCE Student Portal Password',
-      html: `
-        <h2>Welcome to GHRCE Student Portal!</h2>
-        <p>Your login credentials:</p>
-        <p><strong>Email:</strong> ${data.email}</p>
-        <p><strong>Password:</strong> ${password}</p>
-        <p>Please keep this password secure and do not share it with anyone.</p>
-        <p>You can change your password after logging in.</p>
-      `
-    })
-    
-    return { success: true, password }
-  } catch (error) {
-    console.error('Registration error:', error)
-    return { success: false, error: 'Registration failed' }
-  }
-}
-
-export async function forgotPassword(email: string): Promise<{ success: boolean; password?: string; error?: string }> {
-  try {
-    const user = await getUserByEmail(email)
-    if (!user) {
-      return { success: false, error: 'User not found' }
-    }
-    
-    // Generate new password
-    const newPassword = generatePassword()
-    
-    // Update password in database
-    await updateUserPassword(email, newPassword)
-    
-    // Send new password via email (placeholder for now)
-    try {
-      await sendEmail({
-        to: email,
-        subject: 'Your New GHRCE Password',
-        html: `
-          <h2>Password Reset Request</h2>
-          <p>Your new password:</p>
-          <p><strong>Password:</strong> ${newPassword}</p>
-          <p>Please log in with this new password and consider changing it for security.</p>
-        `
-      })
-    } catch (emailError) {
-      console.log('Email sending failed (placeholder), but password was updated:', emailError)
-    }
-    
-    return { success: true, password: newPassword }
-  } catch (error) {
-    console.error('Forgot password error:', error)
-    return { success: false, error: 'Password reset failed' }
-  }
-}
 
 export async function changePassword(email: string, currentPassword: string, newPassword: string): Promise<{ success: boolean; error?: string }> {
   try {

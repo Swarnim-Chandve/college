@@ -104,17 +104,34 @@ export default function RegistrationPage() {
       // Create student login credentials
       await createStudentLogin(studentId.trim(), email, password, name)
       
-      toast({ 
-        title: "Registration Complete", 
-        description: `Your account has been created successfully. You can now log in with your email and password.` 
-      })
-      
-      // Temporary: Show password in toast for development
-      toast({ 
-        title: "Your Login Credentials (Temporary)", 
-        description: `Email: ${email}\nPassword: ${password}`,
-        duration: 15000
-      })
+      // Send welcome email with credentials
+      try {
+        const { sendEmail } = await import('@/lib/email')
+        await sendEmail({
+          to: email,
+          subject: 'Welcome to GHRCE Student Portal',
+          html: `
+            <h2>Welcome to GHRCE Student Portal!</h2>
+            <p>Your account has been created successfully.</p>
+            <p><strong>Login Credentials:</strong></p>
+            <p><strong>Email:</strong> ${email}</p>
+            <p><strong>Password:</strong> ${password}</p>
+            <p>Please keep this password secure and do not share it with anyone.</p>
+            <p>You can change your password after logging in.</p>
+            <p><a href="${window.location.origin}/login">Click here to log in</a></p>
+          `
+        })
+        toast({ 
+          title: "Registration Complete", 
+          description: "Your account has been created! Check your email for login credentials." 
+        })
+      } catch (emailError) {
+        console.error('Failed to send email:', emailError)
+        toast({ 
+          title: "Registration Complete", 
+          description: "Your account has been created, but we couldn't send the credentials email. Please contact support for your password." 
+        })
+      }
       
       // Reset form
       setStudentId("")
