@@ -1,145 +1,110 @@
-# GHRCE Portal Design
+# GHRCE Portal – v4
 
-## Latest Features (v3)
+Modern Next.js portal for student internships, faculty workflows, and admin tools.
 
-### 🆕 **1-Year Internship Duration**
-- Added support for 1-year internship applications
-- Complete integration across all components
-- Database table: `joining_1y`
-- Server actions: `createJoining1y`, `listJoining1y`, `approveJoining1y`, `rejectJoining1y`
+## What’s new in v4
 
-### 📊 **Enhanced Reports Dashboard**
-- **Comprehensive Statistics**: Total, Pending, Approved, Rejected counts
-- **Duration Breakdown**: 2 Weeks, 4 Weeks, 6 Months, 1 Year
-- **Branch Analysis**: Count by department/branch
-- **Filter Tracking**: Shows active filters and result counts
-- **Clear Filters**: One-click reset functionality
+- Email system refactor: replaced `lib/email.ts` with `lib/send-email-server.ts` using Nodemailer.
+- API hardening and utilities cleanup in `lib/auth-new.ts` and `lib/server-actions.ts`.
+- New data imports and companies pipeline under `app/api/import/*` and `app/api/companies`.
+- Prisma migrations for repository files and company details.
+- Next.js 15 and React 19 upgrade, Tailwind CSS v4 stack.
 
-### 🎨 **UI/UX Improvements**
-- **Larger Fonts**: `text-4xl font-black` for better visibility
-- **Color-Coded Statistics**: Visual distinction for different metrics
-- **Responsive Design**: Works on all screen sizes
-- **Professional Dashboard**: Modern, clean interface
+## Tech stack
 
-### 🔧 **Technical Enhancements**
-- **Type Safety**: Updated `InternshipDuration` type to include `"1y"`
-- **Database Schema**: New `Joining1y` model with full feature parity
-- **Server Actions**: Complete CRUD operations for 1-year duration
-- **Navigation**: Updated student sidebar with 1-year option
+- Next.js 15, React 19, TypeScript
+- Tailwind CSS v4, shadcn/ui
+- PostgreSQL + Prisma (6.16.x)
+- Nodemailer for SMTP email
 
-## 🚀 **Getting Started**
+## Getting started
 
 ### Prerequisites
 - Node.js 18+
-- PostgreSQL database
-- npm or yarn
+- PostgreSQL
 
-### Installation
+### Setup
 ```bash
-# Clone the repository
 git clone https://github.com/Swarnim-Chandve/college.git
 cd college
-
-# Install dependencies
 npm install
 
-# Set up environment variables
+# Environment
 cp .env.example .env
-# Edit .env with your database URL
+# Then edit .env
+```
 
-# Run database migrations
-npx prisma db push
+Required env vars (examples):
 
+- DATABASE_URL=postgresql://user:pass@localhost:5432/college
+- NEXTAUTH_SECRET=any-long-random-string (if applicable)
+- SMTP_HOST=smtp.yourprovider.com
+- SMTP_PORT=587
+- SMTP_USER=your-user
+- SMTP_PASS=your-pass
+- EMAIL_FROM=no-reply@yourdomain.com
+
+### Database
+```bash
 # Generate Prisma client
 npx prisma generate
 
-# Start development server
-npm run dev
-```
-
-### Database Setup
-```bash
-# Push schema changes
+# Create database schema (dev)
 npx prisma db push
 
-# Seed database with sample data
-npx prisma db seed
+# Seed sample data (optional)
+npm run db:seed
 ```
 
-## 📋 **Features**
+### Run
+```bash
+npm run dev
+# open http://localhost:3000
+```
 
-### Student Features
-- **Dashboard**: View profile and application status
-- **Internship Applications**: Apply for 2w, 4w, 6m, or 1y internships
-- **Application Tracking**: Real-time status updates
-- **Certificate Upload**: PDF certificate submission
+### Build & start (production)
+```bash
+npm run build
+npm run start
+```
 
-### Faculty Features
-- **Student Management**: View registered students
-- **Application Approvals**: Multi-level approval workflow
-- **Reports Dashboard**: Comprehensive analytics and statistics
-- **Filtering**: Advanced filtering by duration, status, branch, etc.
+In CI/CD or hosted environments use Prisma migrate if you manage migrations:
+```bash
+npx prisma migrate deploy
+```
 
-### Admin Features
-- **Database Seeding**: Initialize with sample data
-- **User Management**: Manage faculty and student accounts
-- **System Configuration**: Admin tools and utilities
-
-## 🏗️ **Architecture**
-
-### Tech Stack
-- **Frontend**: Next.js 14, React, TypeScript
-- **Styling**: Tailwind CSS, shadcn/ui components
-- **Database**: PostgreSQL with Prisma ORM
-- **Authentication**: Custom session management
-- **Deployment**: Vercel-ready
-
-### Project Structure
+## Project structure
 ```
 college/
-├── app/                    # Next.js app directory
-│   ├── api/               # API routes
-│   ├── faculty/           # Faculty dashboard
-│   ├── student/           # Student portal
-│   └── ...
-├── components/            # Reusable UI components
-├── lib/                   # Utility functions
-├── prisma/                # Database schema and migrations
-└── public/                # Static assets
+├─ app/
+│  ├─ api/
+│  ├─ faculty/
+│  └─ student/
+├─ components/
+├─ lib/
+├─ prisma/
+└─ public/
 ```
 
-## 🔄 **Recent Updates**
+## Key routes and scripts
 
-### v3.0.0 (Latest)
-- ✅ Added 1-year internship duration support
-- ✅ Enhanced reports dashboard with statistics
-- ✅ Improved UI with larger, bolder fonts
-- ✅ Added branch-wise analytics
-- ✅ Enhanced filter functionality
-- ✅ Updated student navigation
+- API: `app/api/companies`, `app/api/import/*`, `app/api/email/send`.
+- Seeding: `npm run db:seed` (runs `prisma/seed.ts`).
+- Utilities: `scripts/parse-companies.ts`, `scripts/get-actual-student-ids.js`, `scripts/get-random-students.js`.
 
-### Previous Versions
-- v2: Enhanced approval workflow
-- v1: Initial implementation
+## Upgrading from v3 → v4
 
-## 🐛 **Known Issues**
-- None currently reported
+- Replace legacy email envs with SMTP vars listed above.
+- Review breaking upgrades for Next.js 15/React 19 and Tailwind v4.
+- Ensure Prisma is on 6.16.x and regenerate client.
 
-## 🤝 **Contributing**
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+## Contributing
 
-## 📄 **License**
-This project is licensed under the MIT License.
+1. Create a feature branch: `git checkout -b feature/xyz`
+2. Commit: `git commit -m "feat: xyz"`
+3. Push: `git push origin feature/xyz`
+4. Open a PR
 
-## 👥 **Team**
-- **Developer**: Swarnim Chandve
-- **Institution**: GHRCE (G.H. Raisoni College of Engineering)
+## License
 
----
-
-# Latest deployment trigger
-# Credentials fixed - all users now have password123
+MIT
