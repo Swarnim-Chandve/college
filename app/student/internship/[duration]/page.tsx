@@ -25,6 +25,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { toISOFromInput, diffDaysInclusive } from "@/lib/date"
 import { useToast } from "@/hooks/use-toast"
 // Removed separate dropdown; using a single input with datalist suggestions
+import SiteHeader from "@/components/site-header"
 
 const durationDays: Record<string, number> = {
   "2w": 14,
