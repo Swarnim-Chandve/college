@@ -359,8 +359,10 @@ export default function InternshipFormPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <Card>
+    <div className="min-h-svh flex flex-col">
+      <SiteHeader />
+      <div className="space-y-6 flex-1 w-full px-4 py-6">
+        <Card>
         <CardHeader>
           <CardTitle>
             Internship Application — {duration === "2w" ? "2 Weeks" : duration === "4w" ? "4 Weeks" : duration === "6m" ? "6 Months" : "1 Year"}
@@ -710,6 +712,7 @@ export default function InternshipFormPage() {
           </div>
         </CardContent>
       </Card>
+      </div>
     </div>
   )
 }

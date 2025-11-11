@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/hooks/use-toast"
+import SiteHeader from "@/components/site-header"
 
 export default function StudentSettingsPage() {
   const { toast } = useToast()
@@ -59,8 +60,9 @@ export default function StudentSettingsPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <Card>
+    <div className="min-h-svh flex flex-col">
+      <SiteHeader />
+      <Card className="mx-4 my-6">
         <CardHeader>
           <CardTitle>Settings</CardTitle>
         </CardHeader>

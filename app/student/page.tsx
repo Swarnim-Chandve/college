@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { fmtDate } from "@/lib/date"
 import { useToast } from "@/hooks/use-toast"
+import SiteHeader from "@/components/site-header"
 
 export default function StudentHomePage() {
   const [profile, setProfile] = useState<any>(null)
@@ -97,9 +98,10 @@ export default function StudentHomePage() {
     }
   }, [])
   return (
-    <div className="bg-white min-h-screen">
+    <div className="bg-white min-h-svh flex flex-col">
+      <SiteHeader />
       {/* Main Content Area */}
-      <div className="max-w-7xl mx-auto px-6 py-8">
+      <div className="max-w-7xl mx-auto px-6 py-8 flex-1 w-full">
         <div className="flex gap-8">
           {/* Student Profile Card (Left) */}
           <div className="w-80">

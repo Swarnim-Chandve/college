@@ -8,6 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/hooks/use-toast"
 import { fmtDate } from "@/lib/date"
+import SiteHeader from "@/components/site-header"
 
 export default function MyApplicationsPage() {
   const { toast } = useToast()
@@ -49,7 +50,9 @@ export default function MyApplicationsPage() {
   // Note: Certificate upload via joining tables is not wired here in this view.
 
   return (
-    <div className="space-y-6">
+    <div className="min-h-svh flex flex-col">
+      <SiteHeader />
+      <div className="space-y-6 flex-1 w-full px-4 py-6">
       <Card>
         <CardHeader>
           <CardTitle>My Applications</CardTitle>
@@ -118,6 +121,7 @@ export default function MyApplicationsPage() {
           </div>
         </CardContent>
       </Card>
+      </div>
     </div>
   )
 }

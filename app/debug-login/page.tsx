@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import SiteHeader from '@/components/site-header'
 
 export default function DebugLogin() {
   const [email, setEmail] = useState('hi@gmail.com')
@@ -26,8 +27,9 @@ export default function DebugLogin() {
   }
 
   return (
-    <div className="container mx-auto p-8">
-      <Card className="max-w-md mx-auto">
+    <div className="min-h-svh flex flex-col">
+      <SiteHeader />
+      <Card className="max-w-md mx-auto mt-8">
         <CardHeader>
           <CardTitle>Debug Login Test</CardTitle>
         </CardHeader>

@@ -31,8 +31,8 @@ export default function HomePage() {
             </div>
             <div className="hidden md:block">
               <img
-                src="/campus-collaboration.png"
-                alt="GHRCE campus and industry collaboration illustration"
+                src="/ghrce.jpg"
+                alt="G H Raisoni College of Engineering campus"
                 className="h-auto w-full rounded-lg border object-cover shadow-sm"
               />
             </div>

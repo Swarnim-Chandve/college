@@ -33,6 +33,7 @@ import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { fmtDate } from "@/lib/date"
 import { useToast } from "@/hooks/use-toast"
+import SiteHeader from "@/components/site-header"
 
 function StudentsTable() {
   const [q, setQ] = useState("")
@@ -1449,9 +1450,10 @@ export default function FacultyPage() {
   const role = s?.type === "admin" ? "admin" : s?.type === "faculty" ? "faculty" : s?.type === "dean" ? "dean" : s?.type === "coordinator" ? "coordinator" : "faculty"
 
   return (
-    <div className="bg-white min-h-screen">
+    <div className="bg-white min-h-svh flex flex-col">
+      <SiteHeader />
       {/* Main Content Area */}
-      <div className="max-w-7xl mx-auto px-6 py-8">
+      <div className="max-w-7xl mx-auto px-6 py-8 flex-1 w-full">
         {/* Welcome Section */}
         <div className="mb-8">
           <Card className="border-2 border-gray-200">
