@@ -1474,6 +1474,16 @@ export async function listCompanySubmissions() {
 
 export async function approveCompanySubmission(id: string, approvedBy: string) {
   try {
+    const current = await prisma.companySubmission.findUnique({ where: { id } })
+    if (!current) {
+      throw new Error('Submission not found')
+    }
+
+    // Only allow pending or coordinator-approved submissions to be finalized once
+    if (current.status && current.status !== 'pending' && current.status !== 'approved_coordinator') {
+      return current
+    }
+
     const submission = await prisma.companySubmission.update({
       where: { id },
       data: {
@@ -1489,7 +1499,7 @@ export async function approveCompanySubmission(id: string, approvedBy: string) {
         name: submission.companyName,
         industry: submission.industry,
         location: submission.location,
-        duration: submission.duration,
+        // Company model doesn't store duration; omit to avoid Prisma validation error
         website: submission.website || '',
         personName: submission.personName || '',
         email: submission.email || '',

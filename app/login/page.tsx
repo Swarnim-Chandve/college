@@ -29,6 +29,10 @@ export default function LoginPage() {
       toast({ title: "Email required", description: "Please enter your email address.", variant: "destructive" as any })
       return
     }
+    if (!studentEmail.trim().toLowerCase().endsWith("@ghrce.raisoni.net")) {
+      toast({ title: "Invalid email", description: "Student email must end with @ghrce.raisoni.net", variant: "destructive" as any })
+      return
+    }
     if (!studentPassword.trim()) {
       toast({ title: "Password required", description: "Please enter your password.", variant: "destructive" as any })
       return
@@ -53,6 +57,10 @@ export default function LoginPage() {
   async function onStudentForgot() {
     if (!studentEmail.trim()) {
       toast({ title: "Email required", description: "Please enter your email address to reset password.", variant: "destructive" as any })
+      return
+    }
+    if (!studentEmail.trim().toLowerCase().endsWith("@ghrce.raisoni.net")) {
+      toast({ title: "Invalid email", description: "Student email must end with @ghrce.raisoni.net", variant: "destructive" as any })
       return
     }
     
